@@ -1,0 +1,96 @@
+/ import React, { useEffect, useState, useReducer } from 'react';
+// import { useParams } from 'react-router-dom';
+// import axios from 'axios';
+// import Skeleton from 'react-loading-skeleton';
+// import 'react-loading-skeleton/dist/skeleton.css';
+// import Sidebar from '../../../components/HSidebar';
+// import Modal from 'react-modal';
+// import TransferTable from './TransferTable';
+// import TestSubTestTable from './TestSubTestTable';
+// import UpdateFieldButtons from './UpdateFieldButtons';
+
+// // Reducer to force re-render
+// const useForceUpdate = () => {
+//   const [ignored, forceUpdate] = useReducer((x) => x + 1, 0);
+//   return forceUpdate;
+// };
+
+// const ViewFrom = () => {
+//   const { vertical, trfid } = useParams();
+//   const forceUpdate = useForceUpdate(); // Hook to trigger re-render
+
+//   const [data, setData] = useState(null);
+//   const [loading, setLoading] = useState(true);
+//   const [error, setError] = useState(null);
+
+//   const [testData, setTestData] = useState([]);
+//   const [subTestData, setSubTestData] = useState([]);
+
+//   const [newSubTest, setNewSubTest] = useState({ testId: '', test: '', result: '', remarks: '' });
+//   const [modalIsOpen, setModalIsOpen] = useState(false);
+
+//   // Handle API fetching logic
+//   const fetchData = async () => {
+//     try {
+//       setLoading(true);
+//       const response = await axios.get(`http://localhost:3000/trfs/${vertical}/${trfid}`);
+//       setData(response.data);
+//       setTestData(response.data.testData || []);
+//       setSubTestData(response.data.subTestResults || []);
+//     } catch (error) {
+//       console.error('Error fetching data', error);
+//       setError(error.message);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // Fetch data automatically on component mount or when `forceUpdate` changes
+//   useEffect(() => {
+//     fetchData();
+//   }, [vertical, trfid, forceUpdate]); // Depend on the forceUpdate trigger
+
+//   // Handle Sub-Test interaction
+//   const handleSubTestInteraction = async (subTest) => {
+//     try {
+//       await axios.post('/api/endpoint-for-subtest', subTest);
+//       console.log('SubTest interaction complete');
+//       forceUpdate(); // Trigger data re-fetch
+//     } catch (error) {
+//       console.error('Error during SubTest interaction', error);
+//     }
+//   };
+
+//   const handleTestInteraction = async (test) => {
+//     try {
+//       await axios.post('/api/endpoint-for-test', test);
+//       console.log('Test interaction complete');
+//       forceUpdate(); // Trigger data re-fetch
+//     } catch (error) {
+//       console.error('Error during Test interaction', error);
+//     }
+//   };
+
+//   return (
+//     <div>
+//       {loading && <Skeleton count={5} />}
+//       {error && <div>Error: {error}</div>}
+
+//       <Sidebar />
+//       <div>
+//         <h1>Test & SubTest Data</h1>
+//         {/* Render SubTests or TestTable */}
+//         <TestSubTestTable
+//           subTests={subTestData}
+//           onSubTestInteraction={handleSubTestInteraction} // Handle logic on interaction
+//         />
+//         <TransferTable
+//           tests={testData}
+//           onTestInteraction={handleTestInteraction} // Handle logic on interaction
+//         />
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default ViewFrom;
