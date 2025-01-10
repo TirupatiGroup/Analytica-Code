@@ -1,0 +1,53 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.loading-text {
+    font-size: 48px;
+    font-weight: bold;
+    color: #3498db; /* Initial color */
+    animation: colorChange 1s infinite, bounce 0.5s infinite alternate; /* Use the defined animations */
+  }
+  
+  @keyframes colorChange {
+    0% { color: #3498db; } /* Initial color */
+    50% { color: #e74c3c; } /* Change to a different color */
+    100% { color: #3498db; } /* Back to initial color */
+  }
+  
+  @keyframes bounce {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-10px); }
+  }
+  
+@layer utilities {
+    .backdrop-blur-md {
+        backdrop-filter: blur(9px);
+        -webkit-backdrop-filter: blur(10px);
+        background-color: rgba(255, 255, 255, 0.1); /* Adjust opacity as needed */
+    }
+}
+
+@keyframes gradient-animation {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.animated-gradient {
+    background: linear-gradient(270deg, #00f, #ff0, rgb(0, 78, 129), #3cf357);
+    background-size: 400% 400%;
+    animation: gradient-animation 9s ease infinite;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
+
