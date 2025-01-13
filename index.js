@@ -9,7 +9,10 @@ const fs = require('fs');
 require('dotenv').config();
 const { Pool } = require('pg');
 const stabilityProductsRoutes = require('./routes/stabilityProducts');
-
+const employeesRoutes = require('./routes/employeesRoutes');
+const productRoutes = require('./routes/productRoutes');
+const prefixRoutes = require('./routes/prefixRoutes'); // Import the prefix routes
+const categoryRoutes = require('./routes/categoryRoutes');
 // const mockdate = require('mockdate');
 // mockdate.set('2024-12-31');
 
@@ -55,7 +58,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-app.use('/api/stability_products', stabilityProductsRoutes); // Base path for the API
 
 app.post('/register', upload.single('profile_pic'), async (req, res) => {
     const {
@@ -177,210 +179,21 @@ app.post('/login', (req, res) => {
         });
     });
 });
-// Get all employee details endpoint
-app.get('/employees', (req, res) => {
-    db.query(`
-        SELECT *
-        FROM users
-    `, (err, results) => {
-        if (err) {
-            console.error('Error fetching employees:', err);
-            return res.status(500).send('Error fetching employees');
-        }
+// All Employee routes
+app.use('/employees', employeesRoutes);
+// Stability  routes 
+app.use('/api/stability_products', stabilityProductsRoutes); 
 
-        if (results.length === 0) {
-            return res.status(404).send('No employees found');
-        }
+// Products routes
+app.use('/', productRoutes);
+// for prefix routes
+app.use('/', prefixRoutes);
 
-        // Return the full list of employees in JSON format
-        res.json(results);
-    });
-});
-// Get single employee details by ID
-app.get('/employees/:id', (req, res) => {
-    const userId = req.params.id; // Get the user ID from the URL parameter
 
-    // Query to fetch the details of the user by their ID
-    db.query(`
-        SELECT *
-        FROM users
-        WHERE id = ?;
-    `, [userId], (err, result) => {
-        if (err) {
-            console.error('Error fetching employee details:', err);
-            return res.status(500).send('Error fetching employee details');
-        }
+app.use('/api', categoryRoutes);
 
-        if (result.length === 0) {
-            return res.status(404).send('Employee not found');
-        }
 
-        // Return the single employee data in JSON format
-        res.json(result[0]);
-    });
-});
-//Edit User Details
-app.put('/employees/:id', (req, res) => {
-    const userId = req.params.id; // Get user ID from URL parameter
-    const {
-        username,
-        ename,
-        des,
-        role,
-        depart,
-        vertical,
-        regby,
-        email,
-        extno,
-        mno,
-        mnot,
-        profile_pic,
-        password // New password, if provided
-    } = req.body; // Destructure the fields from the request body
 
-    // Validate at least one field has been provided for update
-    if (!username && !ename && !des && !role && !depart && !vertical && !email && !extno && !mno && !mnot && !profile_pic && !password) {
-        return res.status(400).send('At least one field must be provided for update');
-    }
-
-    // Start building the query dynamically
-    let updateFields = [];
-    let values = [];
-    let valueIndex = 1;
-
-    // Add fields to update
-    if (username) {
-        updateFields.push(`username = ?`);
-        values.push(username);
-    }
-    if (ename) {
-        updateFields.push(`ename = ?`);
-        values.push(ename);
-    }
-    if (des) {
-        updateFields.push(`des = ?`);
-        values.push(des);
-    }
-    if (role) {
-        updateFields.push(`role = ?`);
-        values.push(role);
-    }
-    if (depart) {
-        updateFields.push(`depart = ?`);
-        values.push(depart);
-    }
-    if (vertical) {
-        updateFields.push(`vertical = ?`);
-        values.push(vertical);
-    }
-    if (regby) {
-        updateFields.push(`regby = ?`);
-        values.push(regby);
-    }
-    if (email) {
-        updateFields.push(`email = ?`);
-        values.push(email);
-    }
-    if (extno) {
-        updateFields.push(`extno = ?`);
-        values.push(extno);
-    }
-    if (mno) {
-        updateFields.push(`mno = ?`);
-        values.push(mno);
-    }
-    if (mnot) {
-        updateFields.push(`mnot = ?`);
-        values.push(mnot);
-    }
-    if (profile_pic) {
-        updateFields.push(`profile_pic = ?`);
-        values.push(profile_pic);
-    }
-
-    // Hash password if provided
-    if (password) {
-        const saltRounds = 10;
-        const hashedPassword = bcrypt.hashSync(password, saltRounds);
-        updateFields.push(`password = ?`);
-        values.push(hashedPassword);
-    }
-
-    // Add pass_update and pass_update_by to the query
-    updateFields.push('pass_update = CURRENT_TIMESTAMP');
-    updateFields.push('pass_update_by = ?');
-    values.push('admin'); // You can replace 'admin' with the actual user performing the update
-
-    // Check if we have any fields to update
-    if (updateFields.length === 0) {
-        return res.status(400).send('No valid fields provided for update');
-    }
-
-    // Build the final query string for the UPDATE
-    const updateQuery = `
-        UPDATE users
-        SET
-            ${updateFields.join(', ')}
-        WHERE id = ?;
-    `;
-    values.push(userId); // Add the user ID as the last parameter
-
-    // Log the query and values for debugging
-    // console.log("Query:", updateQuery);
-    // console.log("Values:", values);
-
-    // Execute the UPDATE query to update the user in the database
-    db.query(updateQuery, values, (err, result) => {
-        if (err) {
-            console.error('Error updating employee data:', err);
-            return res.status(500).send('Error updating employee data');
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).send('Employee not found');
-        }
-
-        // Query to fetch the updated employee data
-        const selectQuery = `SELECT * FROM users WHERE id = ?`;
-
-        // Execute the SELECT query to get the updated user details
-        db.query(selectQuery, [userId], (err, result) => {
-            if (err) {
-                console.error('Error fetching updated employee data:', err);
-                return res.status(500).send('Error fetching updated employee data');
-            }
-
-            if (result.length === 0) {
-                return res.status(404).send('Employee not found');
-            }
-
-            // Send back the updated employee data
-            res.json(result[0]);
-        });
-    });
-});
-app.delete('/employees/:id', (req, res) => {
-    const userId = req.params.id; // Get the user ID from the URL parameter
-
-    // Query to delete the user by their ID
-    db.query(`
-        DELETE FROM users
-        WHERE id = ?;
-    `, [userId], (err, result) => {
-        if (err) {
-            console.error('Error deleting employee:', err);
-            return res.status(500).send('Error deleting employee');
-        }
-
-        if (result.affectedRows === 0) {
-            // If no rows were affected, the employee wasn't found
-            return res.status(404).send('Employee not found');
-        }
-
-        // Successfully deleted the employee
-        res.status(200).send('Employee deleted successfully');
-    });
-});
 
 app.get('/trfs/:vertical', (req, res) => {
     const vertical = req.params.vertical;
@@ -534,7 +347,6 @@ app.post('/trfs/:vertical/test-request-form', (req, res) => {
         });
     });
 });
-
 app.get('/trfs/:vertical/:arn/:field', (req, res) => {
     const vertical = req.params.vertical;
     const arn = req.params.arn;
@@ -1311,290 +1123,6 @@ app.delete('/trfs/:vertical/:trfid/subtests/:sub_testid', (req, res) => {
     });
 });
 
-// Endpoint to fetch all products
-app.get('/all-products', (req, res) => {
-    // SQL query to select all products
-    const query = `
-        SELECT id, prepix, pname, createdon  
-        FROM products_for_reporting
-        ORDER BY createdon DESC`;  // Sorting by 'createdon' instead of 'created_at'
-
-    db.query(query, (err, results) => {
-        if (err) {
-            console.error('Error fetching products:', err);
-            return res.status(500).json({
-                error: 'Database error while fetching products'
-            });
-        }
-
-        // Respond with the fetched products
-        res.status(200).json(results);
-    });
-});
-// Endpoint to add a product
-app.post('/Add-Product', (req, res) => {
-    const { prepix, pname } = req.body;  // Change 'product_name' to 'pname'
-
-    // Input validation
-    if (!prepix || !pname) {
-        return res.status(400).json({ error: 'prepix and pname are required' });  // Change 'product_name' to 'pname'
-    }
-
-    // Start a transaction to ensure atomicity
-    db.beginTransaction((err) => {
-        if (err) {
-            console.error('Transaction error:', err);
-            return res.status(500).json({ error: 'Transaction initialization failed' });
-        }
-
-        // SQL query to get the highest suffix for the given prefix
-        const selectMaxIdQuery = `
-            SELECT MAX(CAST(SUBSTRING(prepix, LENGTH(?) + 1) AS UNSIGNED)) AS max_id
-            FROM products_for_reporting
-            WHERE prepix LIKE ?`;
-
-        db.query(selectMaxIdQuery, [prepix, `${prepix}%`], (err, result) => {
-            if (err) {
-                console.error('Error fetching last ID:', err);
-                return db.rollback(() => {
-                    res.status(500).json({ error: 'Error fetching the last ID' });
-                });
-            }
-
-            // Calculate the next suffix for the prefix
-            const nextId = result[0]?.max_id ? result[0].max_id + 1 : 1;
-            const newPrepix = `${prepix}${nextId}`;
-
-            console.log(`Generated new prefix: ${newPrepix}`);
-
-            // SQL query to insert a new product
-            const insertQuery = `
-                INSERT INTO products_for_reporting (prepix, pname)
-                VALUES (?, ?)`;
-
-            db.query(insertQuery, [newPrepix, pname], (err, result) => {
-                if (err) {
-                    console.error('Error inserting product:', err);
-                    return db.rollback(() => {
-                        res.status(500).json({ error: 'Error inserting product data' });
-                    });
-                }
-
-                // Commit the transaction
-                db.commit((err) => {
-                    if (err) {
-                        console.error('Transaction commit error:', err);
-                        return db.rollback(() => {
-                            res.status(500).json({ error: 'Transaction commit failed' });
-                        });
-                    }
-
-                    res.status(201).json({
-                        message: 'Product added successfully',
-                        id: result.insertId,
-                        prepix_column: newPrepix,  // Change 'prefix_column' to 'prepix_column'
-                    });
-                });
-            });
-        });
-    });
-});
-// Endpoint to edit a product
-app.put('/Edit-Product/:id', (req, res) => {
-    const { id } = req.params; // Get the product ID from URL parameter
-    const { prepix, pname } = req.body; // Get the updated prepix and pname from the request body
-
-    // Input validation
-    if (!prepix || !pname) {
-        return res.status(400).json({ error: 'prepix and pname are required' });
-    }
-
-    // Start a transaction to ensure atomicity
-    db.beginTransaction((err) => {
-        if (err) {
-            console.error('Transaction error:', err);
-            return res.status(500).json({ error: 'Transaction initialization failed' });
-        }
-
-        // SQL query to check if the product exists
-        const checkProductQuery = 'SELECT * FROM products_for_reporting WHERE id = ?';
-
-        db.query(checkProductQuery, [id], (err, result) => {
-            if (err) {
-                console.error('Error checking product existence:', err);
-                return db.rollback(() => {
-                    res.status(500).json({ error: 'Error checking product existence' });
-                });
-            }
-
-            // If the product doesn't exist
-            if (result.length === 0) {
-                return db.rollback(() => {
-                    res.status(404).json({ error: 'Product not found' });
-                });
-            }
-
-            // SQL query to update the product
-            const updateQuery = `
-                UPDATE products_for_reporting
-                SET prepix = ?, pname = ?
-                WHERE id = ?`;
-
-            db.query(updateQuery, [prepix, pname, id], (err, result) => {
-                if (err) {
-                    console.error('Error updating product:', err);
-                    return db.rollback(() => {
-                        res.status(500).json({ error: 'Error updating product data' });
-                    });
-                }
-
-                // Commit the transaction
-                db.commit((err) => {
-                    if (err) {
-                        console.error('Transaction commit error:', err);
-                        return db.rollback(() => {
-                            res.status(500).json({ error: 'Transaction commit failed' });
-                        });
-                    }
-
-                    res.status(200).json({
-                        message: 'Product updated successfully',
-                        id: result.insertId, // You can return the updated product ID if needed
-                        prepix_column: prepix, // Return the updated prepix
-                        pname_column: pname,   // Return the updated pname
-                    });
-                });
-            });
-        });
-    });
-});
-// Endpoint to delete a product
-app.delete('/Delete-Product/:id', (req, res) => {
-    const { id } = req.params; // Get the product ID from URL parameter
-
-    // Check if the ID is a valid number
-    if (!id || isNaN(id)) {
-        return res.status(400).json({ error: 'Invalid product ID' });
-    }
-
-    // SQL query to delete the product with the given ID
-    const deleteQuery = 'DELETE FROM products_for_reporting WHERE id = ?';
-
-    db.query(deleteQuery, [id], (err, result) => {
-        if (err) {
-            console.error('Error deleting product:', err);
-            return res.status(500).json({ error: 'Error deleting product. Please try again.' });
-        }
-
-        // If no rows are affected, the product doesn't exist
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Product not found' });
-        }
-
-        res.status(200).json({ message: 'Product deleted successfully' });
-    });
-});
-// API endpoint to count all prefixes and calculate time worked
-app.get('/count-prefixes', (req, res) => {
-    // SQL query to count occurrences of all prefixes and calculate time worked
-    const query = `
-    SELECT prefix, 
-           COUNT(*) AS prefix_count,
-           COUNT(*) * 2 AS hours_worked,                    -- Each occurrence represents 2 hours of work
-           CASE 
-               WHEN COUNT(*) * 2 = 2 THEN 0.25
-               WHEN COUNT(*) * 2 = 4 THEN 0.50
-               WHEN COUNT(*) * 2 = 6 THEN 0.75
-               WHEN COUNT(*) * 2 = 8 THEN 1.00
-               WHEN COUNT(*) * 2 > 8 THEN ROUND((COUNT(*) * 2) / 8.0, 2) -- Round to 2 decimal places
-               ELSE 0
-           END AS days_worked                            -- Convert hours to days (increments of 2 hours = 0.25 days)
-    FROM (
-        SELECT one_prefix_column AS prefix FROM qtr_report WHERE one_prefix_column IS NOT NULL
-        UNION ALL
-        SELECT two_prefix_column AS prefix FROM qtr_report WHERE two_prefix_column IS NOT NULL
-        UNION ALL
-        SELECT three_prefix_column AS prefix FROM qtr_report WHERE three_prefix_column IS NOT NULL
-        UNION ALL
-        SELECT four_prefix_column AS prefix FROM qtr_report WHERE four_prefix_column IS NOT NULL
-    ) AS combined_prefixes
-    GROUP BY prefix
-    ORDER BY prefix_count DESC;
-    `;
-
-    // Execute the query
-    db.query(query, (err, result) => {
-        if (err) {
-            console.error('Error executing the query:', err);
-            return res.status(500).json({ message: 'Database query failed', error: err });
-        }
-
-        // Optional: Ensure all `days_worked` values are displayed with 2 decimal places in the response
-        const formattedResult = result.map(item => {
-            // Ensure that days_worked is a valid number before calling toFixed
-            let daysWorked = Number(item.days_worked); // Convert to number
-            if (!isNaN(daysWorked)) {
-                item.days_worked = daysWorked.toFixed(2); // Format the days_worked to 2 decimal places
-            } else {
-                item.days_worked = "0.00"; // If it's not a number, set it to 0.00
-            }
-            return item;
-        });
-
-        // Send the formatted result as JSON response
-        res.json(formattedResult);
-    });
-});
-// API endpoint to count all prefixes and calculate time worked
-app.get('/count-prefixes', (req, res) => {
-    // SQL query to count occurrences of all prefixes and calculate time worked
-    const query = `
-    SELECT prefix, 
-           COUNT(*) AS prefix_count,
-           COUNT(*) * 2 AS hours_worked,                    -- Each occurrence represents 2 hours of work
-           CASE 
-               WHEN COUNT(*) * 2 = 2 THEN 0.25
-               WHEN COUNT(*) * 2 = 4 THEN 0.50
-               WHEN COUNT(*) * 2 = 6 THEN 0.75
-               WHEN COUNT(*) * 2 = 8 THEN 1.00
-               WHEN COUNT(*) * 2 > 8 THEN ROUND((COUNT(*) * 2) / 8.0, 2) -- Round to 2 decimal places
-               ELSE 0
-           END AS days_worked                            -- Convert hours to days (increments of 2 hours = 0.25 days)
-    FROM (
-        SELECT one_prefix_column AS prefix FROM qtr_report WHERE one_prefix_column IS NOT NULL
-        UNION ALL
-        SELECT two_prefix_column AS prefix FROM qtr_report WHERE two_prefix_column IS NOT NULL
-        UNION ALL
-        SELECT three_prefix_column AS prefix FROM qtr_report WHERE three_prefix_column IS NOT NULL
-        UNION ALL
-        SELECT four_prefix_column AS prefix FROM qtr_report WHERE four_prefix_column IS NOT NULL
-    ) AS combined_prefixes
-    GROUP BY prefix
-    ORDER BY prefix_count DESC;
-    `;
-
-    // Execute the query
-    db.query(query, (err, result) => {
-        if (err) {
-            console.error('Error executing the query:', err);
-            return res.status(500).json({ message: 'Database query failed', error: err });
-        }
-
-        // Optional: Ensure all `days_worked` values are displayed with 2 decimal places in the response
-        const formattedResult = result.map(item => {
-            item.days_worked = item.days_worked.toFixed(2); // Format the days_worked to 2 decimal places
-            return item;
-        });
-
-        // Send the formatted result as JSON response
-        res.json(formattedResult);
-    });
-});
-
-
-
-
-
 
 /* Reporting System API's */
 // for user drop down code 
@@ -1770,7 +1298,6 @@ app.get('/reports/user/:userId', (req, res) => {
         return res.status(200).json(reportedDates);
     });
 });
-
 // API endpoint to update the report details
 app.put('/update-report', (req, res) => {
     console.log('Request body:', req.body); // Log the request body for debugging
@@ -1808,8 +1335,6 @@ app.put('/update-report', (req, res) => {
         }
     });
 });
-
-
 // Express route to search products based on pname
 app.get('/search-prefix-columns', (req, res) => {
     const { pname, prepix } = req.query;
@@ -1979,158 +1504,6 @@ app.get('/reports/:depart/:date?', (req, res) => {
         res.status(200).json(finalResults);
     });
 });
-
-
-const executeQuery = (query) => {
-    return new Promise((resolve, reject) => {
-        db.query(query, (error, results) => {
-            if (error) reject(error);
-            else resolve(results.length);
-        });
-    });
-};
-// Modify fetchCount function to handle dynamic categories
-const fetchCount = async (conditions, category) => {
-    const baseQuery = `SELECT arn${category} FROM trffor${category}`;
-    const query = `${baseQuery} WHERE ${conditions}`;
-    return executeQuery(query);
-};
-// Main Logic
-const getCategoryData = async (firstdate, lastdate) => {
-    try {
-        // Conditions for Raw Material (RM)
-        const conditionsRM = {
-            totalRMReceived: `trfdate >= '${firstdate}' AND trfdate < '${lastdate}' AND samplestage LIKE '%Raw Material%' AND receivedby LIKE '% %'`,
-            totalRMApproved: `trfdate >= '${firstdate}' AND trfdate < '${lastdate}' AND samplestage LIKE '%Raw Material%' AND approvedby LIKE '% %'`,
-            totalRMReceivedFromFirstDate: `trfdate < '${firstdate}' AND samplestage LIKE '%Raw Material%'`,
-            totalRMApprovedFromFirstDate: `trfdate < '${firstdate}' AND samplestage LIKE '%Raw Material%' AND approvedby LIKE '% %'`,
-            totalRMApprovedNow: `trfdate < '${firstdate}' AND samplestage LIKE '%Raw Material%' AND approvedby LIKE '% %' AND approvedate > '${firstdate}'`
-        };
-
-        // Conditions for Non-Raw Material (Non-RM)
-        const conditionsNonRM = {
-            totalNonRMReceived: `trfdate >= '${firstdate}' AND trfdate < '${lastdate}' AND samplestage NOT LIKE '%Raw Material%' AND receivedby LIKE '% %'`,
-            totalNonRMApproved: `trfdate >= '${firstdate}' AND trfdate < '${lastdate}' AND samplestage NOT LIKE '%Raw Material%' AND approvedby LIKE '% %'`,
-            totalNonRMReceivedFromFirstDate: `trfdate < '${firstdate}' AND samplestage NOT LIKE '%Raw Material%'`,
-            totalNonRMApprovedFromFirstDate: `trfdate < '${firstdate}' AND samplestage NOT LIKE '%Raw Material%' AND approvedby LIKE '% %'`,
-            totalNonRMApprovedNow: `trfdate < '${firstdate}' AND samplestage NOT LIKE '%Raw Material%' AND approvedby LIKE '% %' AND approvedate > '${firstdate}'`
-        };
-
-        // Categories
-        const categories = ['ayurveda', 'pharma', 'nutra', 'sports'];
-
-        // Fetch and calculate for each category
-        const categoryResults = await Promise.all(categories.map(async (category) => {
-            // Fetch Raw Material data
-            const [
-                totalRMReceived,
-                totalRMApproved,
-                totalRMReceivedFromFirstDate,
-                totalRMApprovedFromFirstDate,
-                totalRMApprovedNow
-            ] = await Promise.all(Object.values(conditionsRM).map(condition => fetchCount(condition, category)));
-
-            // Fetch Non-Raw Material data
-            const [
-                totalNonRMReceived,
-                totalNonRMApproved,
-                totalNonRMReceivedFromFirstDate,
-                totalNonRMApprovedFromFirstDate,
-                totalNonRMApprovedNow
-            ] = await Promise.all(Object.values(conditionsNonRM).map(condition => fetchCount(condition, category)));
-
-            // Derived calculations for Raw Material
-            const totalRMReceivedPending = totalRMReceivedFromFirstDate - totalRMApprovedFromFirstDate;
-            const totalRMApprovedPendingIncludingOld = totalRMApprovedNow + totalRMReceivedPending;
-            const ReceivedRMFinalCount = totalRMReceived + totalRMApprovedPendingIncludingOld;
-            const ReleasedRMFinalCount = totalRMApproved + totalRMApprovedNow;
-            const TotalPending = ReceivedRMFinalCount - ReleasedRMFinalCount;
-
-            // Derived calculations for Non-Raw Material
-            const totalNonRMReceivedPending = totalNonRMReceivedFromFirstDate - totalNonRMApprovedFromFirstDate;
-            const totalNonRMApprovedPendingIncludingOld = totalNonRMApprovedNow + totalNonRMReceivedPending;
-            const ReceivedNONRMFinalCount = totalNonRMReceived + totalNonRMApprovedPendingIncludingOld;
-            const ReleasedNONRMFinalCount = totalNonRMApproved + totalNonRMApprovedNow;
-            const TotalNONRMPending = ReceivedNONRMFinalCount - ReleasedNONRMFinalCount;
-
-            // Return the category result object
-            return {
-                category,
-                totalRMReceived,
-                totalRMApprovedPendingIncludingOld,
-                ReceivedRMFinalCount,
-                totalRMApproved,
-                totalRMApprovedNow,
-                ReleasedRMFinalCount,
-                TotalPending,
-                totalNonRMReceived,
-                totalNonRMApprovedPendingIncludingOld,
-                ReceivedNONRMFinalCount,
-                totalNonRMApproved,
-                totalNonRMApprovedNow,
-                ReleasedNONRMFinalCount,
-                TotalNONRMPending,
-
-
-            };
-        }));
-
-        return categoryResults;
-    } catch (error) {
-        throw new Error(`Error fetching category data: ${error.message}`);
-    }
-};
-// Helper function to get the first and last date of a given month and year
-const getMonthRange = (month, year) => {
-    const firstDate = new Date(year, month - 1, 1); // month is 0-indexed in JavaScript
-    const lastDate = new Date(year, month, 0); // last day of the month
-    return {
-        firstdate: firstDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        lastdate: lastDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
-    };
-};
-app.get('/category-data-month', async (req, res) => {
-    const { month, year } = req.query;
-
-    if (!month || !year) {
-        return res.status(400).json({ error: 'Please provide both month and year.' });
-    }
-
-    // Validate month and year values
-    if (month < 1 || month > 12 || year < 1000 || year > 9999) {
-        return res.status(400).json({ error: 'Invalid month or year provided.' });
-    }
-
-    try {
-        // Get the first and last date for the given month and year
-        const { firstdate, lastdate } = getMonthRange(month, year);
-
-        // Fetch the category data for the month range
-        const result = await getCategoryData(firstdate, lastdate);
-        res.status(200).json(result);
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/category-data', async (req, res) => {
-    const { firstdate, lastdate } = req.query;
-
-    if (!firstdate || !lastdate) {
-        return res.status(400).json({ error: 'Please provide both firstdate and lastdate.' });
-    }
-
-    try {
-        const result = await getCategoryData(firstdate, lastdate);
-        res.status(200).json(result);
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
