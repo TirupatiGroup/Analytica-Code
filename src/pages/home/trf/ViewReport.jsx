@@ -1,3 +1,6 @@
+
+
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Tic from '../../../assets/tichead.jpg'; // Image path
