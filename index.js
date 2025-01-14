@@ -190,7 +190,7 @@ app.use('/', productRoutes);
 app.use('/', prefixRoutes);
 
 
-app.use('/api', categoryRoutes);
+app.use('/', categoryRoutes);
 
 
 
@@ -1189,6 +1189,7 @@ app.post('/reports', (req, res) => {
         }
     });
 });
+// Fetch Daily Reporting data
 app.get('/reports/:date', (req, res) => {
     const { date } = req.params;
 
@@ -1246,6 +1247,7 @@ app.put('/reports/:id', (req, res) => {
         res.status(200).send('Report details updated successfully');
     });
 });
+// Delete Daily Reporting data
 app.delete('/reports/:id', (req, res) => {
     const { id } = req.params;
 
@@ -1335,6 +1337,7 @@ app.put('/update-report', (req, res) => {
         }
     });
 });
+// API endpoint to delete a report 
 // Express route to search products based on pname
 app.get('/search-prefix-columns', (req, res) => {
     const { pname, prepix } = req.query;
