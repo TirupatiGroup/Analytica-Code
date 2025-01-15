@@ -181,7 +181,7 @@
 // export default LoginPage;
 import React, { useState } from 'react';
 import { useAuth } from '../AuthContext';
-import axios from 'axios';
+import api from '../api/axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { motion } from 'framer-motion';
@@ -228,7 +228,7 @@ const LoginPage = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost:3000/login', { username, password });
+            const response = await api.post('/login', { username, password });
             const userData = response.data.user;
 
             if (response.status === 200 && userData) {
