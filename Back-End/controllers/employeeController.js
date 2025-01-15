@@ -1,37 +1,38 @@
-const db = require('../config/db');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
+const { executeQuery } = require('../config/db');
 
-// Get all employee details
-const getEmployees = async (req, res) => {
+// Get all employees
+exports.getAllEmployees = async (req, res) => {
     try {
-        const [results] = await db.query('SELECT * FROM users');  // Using async/await
+        const results = await executeQuery('SELECT * FROM users');
         if (results.length === 0) {
             return res.status(404).send('No employees found');
         }
         res.json(results);
-    } catch (err) {
-        console.error('Error fetching employees:', err);
-        return res.status(500).send('Error fetching employees');
+    } catch (error) {
+        console.error('Error fetching employees:', error);
+        res.status(500).send('Error fetching employees');
     }
 };
 
-// Get single employee details by ID
-const getEmployeeById = async (req, res) => {
+// Get single employee by ID
+exports.getEmployeeById = async (req, res) => {
     const userId = req.params.id;
+
     try {
-        const [result] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
-        if (result.length === 0) {
+        const results = await executeQuery('SELECT * FROM users WHERE id = ?', [userId]);
+        if (results.length === 0) {
             return res.status(404).send('Employee not found');
         }
-        res.json(result[0]);
-    } catch (err) {
-        console.error('Error fetching employee details:', err);
-        return res.status(500).send('Error fetching employee details');
+        res.json(results[0]);
+    } catch (error) {
+        console.error('Error fetching employee details:', error);
+        res.status(500).send('Error fetching employee details');
     }
 };
 
-// Edit employee details
-const updateEmployee = async (req, res) => {
+// Update employee details
+exports.updateEmployee = async (req, res) => {
     const userId = req.params.id;
     const {
         username,
@@ -53,111 +54,68 @@ const updateEmployee = async (req, res) => {
         return res.status(400).send('At least one field must be provided for update');
     }
 
-    let updateFields = [];
-    let values = [];
-
-    if (username) {
-        updateFields.push('username = ?');
-        values.push(username);
-    }
-    if (ename) {
-        updateFields.push('ename = ?');
-        values.push(ename);
-    }
-    if (des) {
-        updateFields.push('des = ?');
-        values.push(des);
-    }
-    if (role) {
-        updateFields.push('role = ?');
-        values.push(role);
-    }
-    if (depart) {
-        updateFields.push('depart = ?');
-        values.push(depart);
-    }
-    if (vertical) {
-        updateFields.push('vertical = ?');
-        values.push(vertical);
-    }
-    if (regby) {
-        updateFields.push('regby = ?');
-        values.push(regby);
-    }
-    if (email) {
-        updateFields.push('email = ?');
-        values.push(email);
-    }
-    if (extno) {
-        updateFields.push('extno = ?');
-        values.push(extno);
-    }
-    if (mno) {
-        updateFields.push('mno = ?');
-        values.push(mno);
-    }
-    if (mnot) {
-        updateFields.push('mnot = ?');
-        values.push(mnot);
-    }
-    if (profile_pic) {
-        updateFields.push('profile_pic = ?');
-        values.push(profile_pic);
-    }
-
-    if (password) {
-        const hashedPassword = bcrypt.hashSync(password, 10);
-        updateFields.push('password = ?');
-        values.push(hashedPassword);
-    }
-
-    updateFields.push('pass_update = CURRENT_TIMESTAMP');
-    updateFields.push('pass_update_by = ?');
-    values.push('admin');
-
-    if (updateFields.length === 0) {
-        return res.status(400).send('No valid fields provided for update');
-    }
-
-    const updateQuery = `
-        UPDATE users
-        SET ${updateFields.join(', ')}
-        WHERE id = ?;
-    `;
-    values.push(userId);
-
     try {
-        const [result] = await db.query(updateQuery, values);
+        const updateFields = [];
+        const values = [];
+
+        if (username) updateFields.push('username = ?'), values.push(username);
+        if (ename) updateFields.push('ename = ?'), values.push(ename);
+        if (des) updateFields.push('des = ?'), values.push(des);
+        if (role) updateFields.push('role = ?'), values.push(role);
+        if (depart) updateFields.push('depart = ?'), values.push(depart);
+        if (vertical) updateFields.push('vertical = ?'), values.push(vertical);
+        if (regby) updateFields.push('regby = ?'), values.push(regby);
+        if (email) updateFields.push('email = ?'), values.push(email);
+        if (extno) updateFields.push('extno = ?'), values.push(extno);
+        if (mno) updateFields.push('mno = ?'), values.push(mno);
+        if (mnot) updateFields.push('mnot = ?'), values.push(mnot);
+        if (profile_pic) updateFields.push('profile_pic = ?'), values.push(profile_pic);
+        if (password) {
+            const saltRounds = 10;
+            const hashedPassword = bcrypt.hashSync(password, saltRounds);
+            updateFields.push('password = ?'), values.push(hashedPassword);
+        }
+
+        updateFields.push('pass_update = CURRENT_TIMESTAMP');
+        updateFields.push('pass_update_by = ?');
+        values.push('admin');
+        values.push(userId);
+
+        const updateQuery = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+
+        const result = await executeQuery(updateQuery, values);
+
         if (result.affectedRows === 0) {
             return res.status(404).send('Employee not found');
         }
 
-        const [updatedResult] = await db.query('SELECT * FROM users WHERE id = ?', [userId]);
-        res.json(updatedResult[0]);
-    } catch (err) {
-        console.error('Error updating employee data:', err);
-        return res.status(500).send('Error updating employee data');
+        const updatedEmployee = await executeQuery('SELECT * FROM users WHERE id = ?', [userId]);
+
+        if (updatedEmployee.length === 0) {
+            return res.status(404).send('Employee not found');
+        }
+
+        res.json(updatedEmployee[0]);
+    } catch (error) {
+        console.error('Error updating employee data:', error);
+        res.status(500).send('Error updating employee data');
     }
 };
 
 // Delete employee
-const deleteEmployee = async (req, res) => {
+exports.deleteEmployee = async (req, res) => {
     const userId = req.params.id;
+
     try {
-        const [result] = await db.query('DELETE FROM users WHERE id = ?', [userId]);
+        const result = await executeQuery('DELETE FROM users WHERE id = ?', [userId]);
+
         if (result.affectedRows === 0) {
             return res.status(404).send('Employee not found');
         }
-        res.status(200).send('Employee deleted successfully');
-    } catch (err) {
-        console.error('Error deleting employee:', err);
-        return res.status(500).send('Error deleting employee');
-    }
-};
 
-module.exports = {
-    getEmployees,
-    getEmployeeById,
-    updateEmployee,
-    deleteEmployee
+        res.status(200).send('Employee deleted successfully');
+    } catch (error) {
+        console.error('Error deleting employee:', error);
+        res.status(500).send('Error deleting employee');
+    }
 };

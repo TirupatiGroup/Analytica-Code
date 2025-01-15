@@ -12,26 +12,43 @@ const getAllStabilityProducts = async (req, res) => {
     }
 };
 
-
 // GET a single stability product by ID
 const getStabilityProductById = async (req, res) => {
     const { id } = req.params;
-    // console.log('Received ID:', id); // Log the ID to verify it's being passed correctly
 
     try {
-        // Correct query with parameter placeholders
-        const query = 'SELECT * FROM stability_products WHERE id = ?';
+        // Query to fetch data from stability_products and related tables
+        const query = `
+            SELECT 
+                sp.*,
+                ltsr.*,
+                sbd.*,
+                sbcd.*,
+                sltr.*,
+                ssp.*
+            FROM 
+                stability_products sp
+            LEFT JOIN stability_lt_sub_results ltsr ON sp.id = ltsr.pid
+            LEFT JOIN stability_batch_details sbd ON sp.id = sbd.pid
+            LEFT JOIN stability_batch_condition_details sbcd ON sp.id = sbcd.pid
+            LEFT JOIN stability_lt_results sltr ON sp.id = sltr.pid
+            LEFT JOIN stability_summary_products ssp ON sp.id = ssp.pid
+            WHERE sp.id = ?;
+        `;
+
         console.log('Executing query:', query, 'with ID:', id);
 
         // Execute the query with the parameterized value
         const results = await executeQuery(query, [id]);
 
-        res.json(results[0] || {}); // Return the result or an empty object if no result is found
+        res.json(results.length > 0 ? results : []); // Return results or an empty array if no match
     } catch (error) {
         console.error('SQL Error:', error); // Log the error for debugging
         res.status(500).json({ error: error.message });
     }
 };
+
+
 const addStabilityProduct = async (req, res) => {
     const data = req.body;
 
@@ -105,19 +122,24 @@ const updateStabilityProduct = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
-
-
 // DELETE a stability product by ID
 const deleteStabilityProduct = async (req, res) => {
     const { id } = req.params;
     try {
+        // Delete the product from the table
         await executeQuery('DELETE FROM stability_products WHERE id = ?', [id]);
-        res.json({ message: 'Product deleted successfully!' });
+
+        // Construct the ALTER TABLE query dynamically
+        const query = `ALTER TABLE stability_products AUTO_INCREMENT = ${id}`;
+        await executeQuery(query);
+
+        res.json({ message: `Product with ID ${id} deleted and AUTO_INCREMENT reset to ${id} successfully!` });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
+
 
 module.exports = {
     getAllStabilityProducts,
