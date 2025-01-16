@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ResizableBox } from 'react-resizable';
 import 'react-resizable/css/styles.css';
-
+import api from '../../../api/axios';
 const ArdHome = () => {
   const today = new Date();
   const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
@@ -22,7 +22,7 @@ const ArdHome = () => {
     const formattedDate = `${year}-${month < 10 ? '0' + month : month}`;
     
     try {
-      const response = await fetch(`http://localhost:3000/reports/ard/${formattedDate}`);
+      const response = await api.fetch(`/reports/ard/${formattedDate}`);
       if (!response.ok) {
         throw new Error('Failed to fetch data');
       }

@@ -4,6 +4,7 @@ import AddProductModal from './AddProductModal';
 import EditProductModal from './EditProductModal';
 import { FaPills, FaHandHoldingHeart, FaBasketballBall, FaLeaf, FaFilter, FaPlus } from 'react-icons/fa';
 import Sidebar from '../../components/HSidebar';
+import api from '../../api/axios';
 
 const Stability = () => {
     const [products, setProducts] = useState([]);
@@ -18,7 +19,7 @@ const Stability = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await axios.get('http://localhost:3000/api/stability_products');
+                const response = await api.get('/api/stability_products');
                 const sortedProducts = response.data.sort((a, b) => b.id - a.id); // Sort in descending order
                 setProducts(sortedProducts);
                 setFilteredProducts(sortedProducts); // Initially show all products
@@ -50,7 +51,7 @@ const Stability = () => {
     // Handle adding a new product
     const handleAddProduct = async (data) => {
         try {
-            const response = await axios.post('http://localhost:3000/api/stability_products', data);
+            const response = await api.post('/api/stability_products', data);
             const updatedProducts = [...products, response.data];
             setProducts(updatedProducts); // Update the full product list
             setFilteredProducts(updatedProducts); // Update the filtered product list
@@ -63,7 +64,7 @@ const Stability = () => {
     // Handle editing a product
     const handleEditProduct = async (data) => {
         try {
-            await axios.put(`http://localhost:3000/api/stability_products/${data.id}`, data);
+            await api.put(`/api/stability_products/${data.id}`, data);
             const updatedProducts = products.map((product) =>
                 product.id === data.id ? data : product
             );
@@ -78,7 +79,7 @@ const Stability = () => {
     // Handle deleting a product
     const handleDeleteProduct = async (id) => {
         try {
-            await axios.delete(`http://localhost:3000/api/stability_products/${id}`);
+            await api.delete(`/api/stability_products/${id}`);
             const updatedProducts = products.filter((product) => product.id !== id);
             setProducts(updatedProducts);
             setFilteredProducts(updatedProducts);

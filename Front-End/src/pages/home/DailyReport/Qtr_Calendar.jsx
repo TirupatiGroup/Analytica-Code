@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../../api/axios';
 
 const Qtr_Calendar = () => {
     const [reportedDates, setReportedDates] = useState([]);
@@ -31,7 +31,7 @@ const Qtr_Calendar = () => {
     // Fetch reported dates from the backend
     const fetchReportedDates = async (userEname) => {
         try {
-            const res = await axios.get(`http://localhost:3000/qtr_report/user/${userEname}`);
+            const res = await api.get(`/qtr_report/user/${userEname}`);
             // console.log('Backend Response:', res.data);  // Log backend response for debugging
 
             // Map over the response and convert the date string to a valid Date object

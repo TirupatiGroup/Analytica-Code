@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: 'frontend',
-      script: 'npm',
-      args: 'start',
+      script: 'node_modules/vite/bin/vite.js',
+      args: 'serve --host',
       cwd: './front-end', // Path to your frontend project
       interpreter: 'node', // Use Node.js as the interpreter
       watch: false,

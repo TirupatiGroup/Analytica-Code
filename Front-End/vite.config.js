@@ -1,14 +1,19 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+// Access environment variables
+const port = process.env.VITE_PORT || 3001;
+const host = process.env.VITE_HOST || '0.0.0.0';
+const apiUrl = process.env.API_URL || 'http://localhost:3000';
+
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3001,
-    host: '0.0.0.0',
+    port: parseInt(port, 10),
+    host: host,
     proxy: {
       '/api': {
-        target: 'http://172.16.29.61/:3000', 
+        target: apiUrl, 
         changeOrigin: true,
         secure: false,
       },

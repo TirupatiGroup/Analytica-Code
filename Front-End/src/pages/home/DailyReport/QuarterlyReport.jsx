@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../../api/axios';
 import Sidebar from '../../../components/HSidebar';
 import Qtr_Calendar from './Qtr_Calendar';
 import Select from 'react-select';
@@ -29,8 +29,8 @@ const QuarterlyReport = () => {
 
     useEffect(() => {
         // Fetch users when the component loads
-        axios
-            .get('http://localhost:3000/api/pass-users')
+        api
+            .get('/api/pass-users')
             .then((response) => setUsers(response.data))
             .catch((error) => console.error('Error fetching users:', error));
     }, []);
@@ -38,8 +38,8 @@ const QuarterlyReport = () => {
     const fetchPrefixes = (inputValue, columnName) => {
         if (!inputValue) return;
 
-        axios
-            .get('http://localhost:3000/search-prefix-columns', { params: { search: inputValue } }) // Send inputValue to search both pname and prepix
+        api
+            .get('/search-prefix-columns', { params: { search: inputValue } }) // Send inputValue to search both pname and prepix
             .then((response) => {
                 setPrefixOptions((prevOptions) => ({
                     ...prevOptions,
@@ -101,7 +101,7 @@ const QuarterlyReport = () => {
                 }
                 : userData;
 
-            const response = await axios.post('http://localhost:3000/qtr-report', reportData);
+            const response = await api.post('/qtr-report', reportData);
 
             // Show success alert
             alert(response.data.message);

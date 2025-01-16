@@ -3,11 +3,11 @@ import Sidebar from '../../components/HSidebar';
 import { useNavigate } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { logoData } from '../../pages/Data'; // Import logo data
+import { logoData } from '../../pages/Data'; 
 
 const ProfileDetails = () => {
     const [user, setUser] = useState(null);
-    const [profileImage, setProfileImage] = useState(logoData[1].src); // Default profile image
+    const [profileImage, setProfileImage] = useState(logoData[1].src);
     const [userName, setUserName] = useState('');
     const [designation, setDesignation] = useState('');
     const [email, setEmail] = useState('');
@@ -16,7 +16,9 @@ const ProfileDetails = () => {
     const [depart, setDepart] = useState('');
     const navigate = useNavigate();
 
-    const baseURL = "http://172.16.27.20/image/userpic/";
+    // const baseURL = "http://172.16.27.20/image/userpic/";
+    const baseURL = "http://172.16.29.53:3000/uploads/profile_pics/";
+
 
     // Fetch user data from localStorage on component mount
     useEffect(() => {

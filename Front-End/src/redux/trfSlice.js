@@ -1,24 +1,35 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import api from '../api/axios';
 
 // Fetching data based on vertical
 export const fetchTrfData = createAsyncThunk(
   'trf/fetchTrfData',
-  async (vertical, page) => {
-    const response = await fetch(`http://localhost:3000/trfs/${vertical}`);
-    if (!response.ok) throw new Error('Network response was not ok');
-    return response.json();
+  async (vertical, { rejectWithValue }) => {
+    try {
+      const response = await api.get(`/trfs/${vertical}`);
+      if (response.status !== 200) {
+        throw new Error('Network response was not ok');
+      }
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
 // Deleting TRF data
 export const deleteTrfData = createAsyncThunk(
   'trf/deleteTrfData',
-  async ({ vertical, trfid }) => {
-    const response = await fetch(`http://localhost:3000/trfs/${vertical}/${trfid}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) throw new Error('Failed to delete the record');
-    return { vertical, trfid };
+  async ({ vertical, trfid }, { rejectWithValue }) => {
+    try {
+      const response = await api.delete(`/trfs/${vertical}/${trfid}`);
+      if (response.status !== 200) {
+        throw new Error('Failed to delete the record');
+      }
+      return { vertical, trfid };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
   }
 );
 
@@ -83,7 +94,7 @@ const trfSlice = createSlice({
       })
       .addCase(fetchTrfData.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
       })
       .addCase(deleteTrfData.pending, (state) => {
         state.loading = true;
@@ -98,7 +109,7 @@ const trfSlice = createSlice({
       })
       .addCase(deleteTrfData.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
       });
   },
 });

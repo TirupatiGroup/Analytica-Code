@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../../api/axios';
 
 const Calendar = () => {
   const [reportedDates, setReportedDates] = useState([]);
@@ -30,7 +30,7 @@ const Calendar = () => {
   // Fetch reported dates from the backend
   const fetchReportedDates = async (userId) => {
     try {
-      const res = await axios.get(`http://localhost:3000/reports/user/${userId}`);
+      const res = await api.get(`/reports/user/${userId}`);
       // console.log('Backend Response:', res.data);  // Log backend response for debugging
 
       // Map over the response and convert the date string to a valid Date object
@@ -94,55 +94,55 @@ const Calendar = () => {
   const year = currentDate.getFullYear();
 
   return (
-    <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-100 to-blue-300 p-8 rounded-lg shadow-lg">
-      <div className="flex justify-between items-center mb-6">
-        <button
-          onClick={() => changeMonth(-1)}
-          className="text-5xl text-blue-600 hover:text-blue-800 transition-all duration-300 transform active:scale-95">
-          &lt;
-        </button>
-        <div className="text-center">
-          <h2 className="text-md font-bold text-gray-700">{userName}'s Reporting</h2>
-          <p className="text-sm text-gray-500">{monthName} {year}</p>
-        </div>
-        <button
-          onClick={() => changeMonth(1)}
-          className="text-5xl text-blue-600 hover:text-blue-800 transition-all duration-300 transform active:scale-95">
-          &gt;
-        </button>
+    <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-100 to-blue-300 p-4 sm:p-6 md:p-8 rounded-lg shadow-lg">
+    <div className="flex justify-between items-center mb-6">
+      <button
+        onClick={() => changeMonth(-1)}
+        className="text-3xl sm:text-4xl md:text-5xl text-blue-600 hover:text-blue-800 transition-all duration-300 transform active:scale-95">
+        &lt;
+      </button>
+      <div className="text-center">
+        <h2 className="text-sm sm:text-md md:text-lg font-bold text-gray-700">{userName}'s Reporting</h2>
+        <p className="text-xs sm:text-sm text-gray-500">{monthName} {year}</p>
       </div>
-
-      <div className="grid grid-cols-7 gap-1 text-center text-sm font-semibold">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div key={day} className="text-gray-700">{day}</div>
-        ))}
-
-        {getDaysInMonth(currentDate).map((day) => {
-          const isDaySunday = isSunday(day);
-          const isDayReported = isReported(day);
-          const isCurrentMonthDay = day.getMonth() === currentDate.getMonth();
-
-          // Set background classes for different days
-          let dayClass = 'bg-white text-gray-800 border shadow-md cursor-pointer';
-
-          if (!isCurrentMonthDay) {
-            dayClass = 'bg-gray-200 text-gray-400 cursor-not-allowed'; // Previous/Next month day
-          } else if (isDayReported) {
-            dayClass = 'bg-green-500 text-white shadow-lg cursor-pointer';
-          } else if (isDaySunday) {
-            dayClass = 'bg-red-500 text-white shadow-lg cursor-pointer';
-          }
-
-          return (
-            <div key={day} className={`flex flex-col items-center justify-center p-2 border border-gray-300 rounded-lg ${dayClass}`}>
-              <span className="text-lg font-semibold">
-                {day.getDate()}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      <button
+        onClick={() => changeMonth(1)}
+        className="text-3xl sm:text-4xl md:text-5xl text-blue-600 hover:text-blue-800 transition-all duration-300 transform active:scale-95">
+        &gt;
+      </button>
     </div>
+
+    <div className="grid grid-cols-7 gap-1 text-center text-xs sm:text-sm font-semibold">
+      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+        <div key={day} className="text-gray-700">{day}</div>
+      ))}
+
+      {getDaysInMonth(currentDate).map((day) => {
+        const isDaySunday = isSunday(day);
+        const isDayReported = isReported(day);
+        const isCurrentMonthDay = day.getMonth() === currentDate.getMonth();
+
+        // Set background classes for different days
+        let dayClass = 'bg-white text-gray-800 border shadow-md cursor-pointer';
+
+        if (!isCurrentMonthDay) {
+          dayClass = 'bg-gray-200 text-gray-400 cursor-not-allowed'; // Previous/Next month day
+        } else if (isDayReported) {
+          dayClass = 'bg-green-500 text-white shadow-lg cursor-pointer';
+        } else if (isDaySunday) {
+          dayClass = 'bg-red-500 text-white shadow-lg cursor-pointer';
+        }
+
+        return (
+          <div key={day} className={`flex flex-col items-center justify-center p-1 sm:p-2 border border-gray-300 rounded-lg ${dayClass}`}>
+            <span className="text-sm sm:text-base md:text-lg font-semibold">
+              {day.getDate()}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  </div>
   );
 };
 

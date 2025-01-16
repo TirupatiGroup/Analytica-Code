@@ -1,13 +1,10 @@
-
-
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Tic from '../../../assets/tichead.jpg'; // Image path
 import Sidebar from '../../../components/HSidebar';
 import Skeleton from 'react-loading-skeleton'; // Skeleton loader
 import 'react-loading-skeleton/dist/skeleton.css'; // Import the skeleton styles
-
+import api from '../../../api/axios';
 const Report = () => {
   const { vertical, trfid } = useParams();
   const [reportData, setReportData] = useState(null);
@@ -22,15 +19,12 @@ const Report = () => {
       return;
     }
 
-    const apiUrl = `http://localhost:3000/trfs/${vertical}/${trfid}`;
+    const apiUrl = `/trfs/${vertical}/${trfid}`;
 
     const fetchData = async () => {
       try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const data = await response.json();
+        const response = await api.get(apiUrl);
+        const data = response.data;
         setReportData(data);
         setDataLoaded(true); // Mark data as loaded
       } catch (err) {
@@ -72,7 +66,7 @@ const Report = () => {
     return (
       <div className="flex">
         <Sidebar />
-        <div className="flex-grow ml-60 px-24 py-2" id="reportContent" style={{ position: 'relative' }}>
+        <div className="flex-grow ml-60 p-5" >
           {/* Main content styled like a document */}
           <div className={`document-container p-6 ${isApproved ? 'bg-white' : 'bg-gray-50'}`} style={{ border: '1px solid #ccc', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)', position: 'relative', zIndex: 1 }}>
             {/* Header */}

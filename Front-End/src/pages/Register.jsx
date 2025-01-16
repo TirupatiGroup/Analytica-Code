@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import axios from 'axios';
 import Sidebar from '../components/HSidebar';
-
+import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 const Register = () => {
     const [formData, setFormData] = useState({
         username: '',
@@ -136,119 +135,140 @@ const Register = () => {
     };
 
     return (
-        <div className="flex">
-            <Sidebar />
-            <div className="flex-grow ml-60 py-4 px-2 h-screen">
-                <div className="w-full max-w-4xl bg-white p-8 rounded-lg shadow-lg">
-                    <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">Register User</h2>
-
-                    {successMessage && <div className="bg-green-500 text-white p-3 mb-4 rounded">{successMessage}</div>}
-                    {error && !successMessage && <div className="bg-red-500 text-white p-3 mb-4 rounded">{error}</div>}
-                    {fileError && <div className="bg-red-500 text-white p-3 mb-4 rounded">{fileError}</div>}
-
-                    <form onSubmit={handleSubmit} autoComplete="off">
-                        <div className="grid grid-cols-3 gap-4 mb-4">
-                            {/* Employee ID */}
-                            <div>
-                                <label htmlFor="username" className="block text-gray-700">Employee ID (Username)</label>
-                                <input
-                                    type="text"
-                                    id="username"
-                                    name="username"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                    className="w-full p-2 border rounded"
-                                />
-                            </div>
-
-                            {/* Employee Name */}
-                            <div>
-                                <label htmlFor="ename" className="block text-gray-700">Employee Name</label>
-                                <input
-                                    type="text"
-                                    id="ename"
-                                    name="ename"
-                                    value={formData.ename}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-
-                            {/* Authorization Role */}
-                            <div>
-                                <label htmlFor="auth_role" className="block text-gray-700">Authorization Role</label>
-                                <select
-                                    id="auth_role"
-                                    name="auth_role"
-                                    value={formData.auth_role}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Select Authorization Role</option>
-                                    <option value="1">Admin</option>
-                                    <option value="2">Editor</option>
-                                    <option value="3">Manager</option>
-                                    <option value="4">User</option>
-                                </select>
-                            </div>
+        <div className="flex flex-col md:flex-row">
+        <Sidebar />
+        <div className="flex-grow md:ml-60 py-6 px-4 h-screen bg-gray-100">
+            <div className="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-md">
+                <h2 className="text-3xl font-bold text-center text-gray-700 mb-6">Register User</h2>
+    
+                {/* Messages */}
+                {successMessage && (
+                    <div className="bg-green-500 text-white p-4 rounded mb-4 text-center">
+                        {successMessage}
+                    </div>
+                )}
+                {error && !successMessage && (
+                    <div className="bg-red-500 text-white p-4 rounded mb-4 text-center">
+                        {error}
+                    </div>
+                )}
+                {fileError && (
+                    <div className="bg-red-500 text-white p-4 rounded mb-4 text-center">
+                        {fileError}
+                    </div>
+                )}
+    
+                <form onSubmit={handleSubmit} autoComplete="off">
+                    {/* First Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                                Employee ID (Username)
+                            </label>
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
                         </div>
-
-                        <div className="grid grid-cols-3 gap-4 mb-4">
-                            {/* Department */}
-                            <div>
-                                <label htmlFor="depart" className="block text-gray-700">Department</label>
-                                <select
-                                    id="depart"
-                                    name="depart"
-                                    value={formData.depart}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Select Department</option>
-                                    <option value="ard">ARD</option>
-                                    <option value="frd">FRD</option>
-                                </select>
-                            </div>
-
-                            {/* Vertical */}
-                            <div>
-                                <label htmlFor="vertical" className="block text-gray-700">Vertical</label>
-                                <select
-                                    id="vertical"
-                                    name="vertical"
-                                    value={formData.vertical}
-                                    onChange={handleChange}
-                                    required
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Select Vertical</option>
-                                    <option value="nt">Nutra</option>
-                                    <option value="sp">Sports</option>
-                                    <option value="ph">Pharma</option>
-                                    <option value="ay">Ayurveda</option>
-                                    <option value="glp">GLP</option>
-                                    <option value="doc">Documentation</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label htmlFor="profile_pic" className="block text-gray-700">Profile Picture</label>
-                                <input
-                                    type="file"
-                                    id="profile_pic"
-                                    name="profile_pic"
-                                    onChange={handleFileChange}
-                                    className="w-full px-4 p-2 border rounded"
-                                />
-                            </div>
+                        <div>
+                            <label htmlFor="ename" className="block text-sm font-medium text-gray-700 mb-1">
+                                Employee Name
+                            </label>
+                            <input
+                                type="text"
+                                id="ename"
+                                name="ename"
+                                value={formData.ename}
+                                onChange={handleChange}
+                                required
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
                         </div>
-
-                        {/* Password */}
-                        <div className="mb-4">
-                            <label htmlFor="password" className="block text-gray-700">Password</label>
+                        <div>
+                            <label htmlFor="auth_role" className="block text-sm font-medium text-gray-700 mb-1">
+                                Authorization Role
+                            </label>
+                            <select
+                                id="auth_role"
+                                name="auth_role"
+                                value={formData.auth_role}
+                                onChange={handleChange}
+                                required
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                                <option value="">Select Authorization Role</option>
+                                <option value="1">Admin</option>
+                                <option value="2">Editor</option>
+                                <option value="3">Manager</option>
+                                <option value="4">User</option>
+                            </select>
+                        </div>
+                    </div>
+    
+                    {/* Second Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div>
+                            <label htmlFor="depart" className="block text-sm font-medium text-gray-700 mb-1">
+                                Department
+                            </label>
+                            <select
+                                id="depart"
+                                name="depart"
+                                value={formData.depart}
+                                onChange={handleChange}
+                                required
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                                <option value="">Select Department</option>
+                                <option value="ard">ARD</option>
+                                <option value="frd">FRD</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="vertical" className="block text-sm font-medium text-gray-700 mb-1">
+                                Vertical
+                            </label>
+                            <select
+                                id="vertical"
+                                name="vertical"
+                                value={formData.vertical}
+                                onChange={handleChange}
+                                required
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                                <option value="">Select Vertical</option>
+                                <option value="nt">Nutra</option>
+                                <option value="sp">Sports</option>
+                                <option value="ph">Pharma</option>
+                                <option value="ay">Ayurveda</option>
+                                <option value="glp">GLP</option>
+                                <option value="doc">Documentation</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="profile_pic" className="block text-sm font-medium text-gray-700 mb-1">
+                                Profile Picture
+                            </label>
+                            <input
+                                type="file"
+                                id="profile_pic"
+                                name="profile_pic"
+                                onChange={handleFileChange}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            />
+                        </div>
+                    </div>
+    
+                    {/* Password Fields */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                                Password
+                            </label>
                             <div className="relative">
                                 <input
                                     type={showPassword ? 'text' : 'password'}
@@ -256,20 +276,21 @@ const Register = () => {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-2 top-2 text-gray-600"
+                                    className="absolute right-3 top-3 text-gray-500"
                                 >
-                                    {showPassword ? '🙈' : '👁️'}
+                                    {showPassword ?  <AiFillEyeInvisible size={20} /> : <AiFillEye size={20} />}
                                 </button>
                             </div>
                         </div>
-                        {/* Confirm Password */}
-                        <div className="mb-4">
-                            <label htmlFor="confirmPassword" className="block text-gray-700">Confirm Password</label>
+                        <div>
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                                Confirm Password
+                            </label>
                             <div className="relative">
                                 <input
                                     type={showConfirmPassword ? 'text' : 'password'}
@@ -277,29 +298,30 @@ const Register = () => {
                                     name="confirmPassword"
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-2 top-2 text-gray-600"
+                                    className="absolute right-3 top-3 text-gray-500"
                                 >
-                                    {showConfirmPassword ? '🙈' : '👁️'}
+                                    {showConfirmPassword ?  <AiFillEyeInvisible size={20} /> : <AiFillEye size={20} />}
                                 </button>
                             </div>
                         </div>
-
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            className="bg-blue-500 text-white p-2 w-full rounded"
-                        >
-                            Register
-                        </button>
-                    </form>
-                </div>
+                    </div>
+    
+                    {/* Submit Button */}
+                    <button
+                        type="submit"
+                        className="bg-blue-500 hover:bg-blue-600 text-white font-medium p-3 rounded-md w-full transition"
+                    >
+                        Register
+                    </button>
+                </form>
             </div>
         </div>
+    </div> 
     );
 };
 

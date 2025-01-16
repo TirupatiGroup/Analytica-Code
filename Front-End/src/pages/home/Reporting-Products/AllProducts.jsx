@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Sidebar from '../../../components/HSidebar';
-import { FaSearch, FaHandHoldingHeart, FaBasketballBall, FaLeaf, FaPills,FaTrashAlt,FaEdit } from 'react-icons/fa';
-import axios from 'axios';
+import { FaSearch, FaHandHoldingHeart, FaBasketballBall, FaLeaf, FaPills, FaTrashAlt, FaEdit } from 'react-icons/fa';
+import api from '../../../api/axios';
 import { toast } from 'react-toastify';
 import Modal from 'react-modal';
 
@@ -23,14 +23,10 @@ const AllProducts = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('http://localhost:3000/all-products');
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
-        }
-        const data = await response.json();
-        setProducts(data); // Assuming the data includes pname and prepix
+        const response = await api.get('/all-products');
+        setProducts(response.data); // Assuming the data includes pname and prepix
       } catch (err) {
-        setError(err.message);
+        setError('Error fetching products');
       } finally {
         setLoading(false);
       }
@@ -43,11 +39,8 @@ const AllProducts = () => {
   useEffect(() => {
     const fetchPrefixCounts = async () => {
       try {
-        const response = await fetch('http://localhost:3000/count-prefixes');
-        if (!response.ok) {
-          throw new Error('Failed to fetch prefix counts');
-        }
-        const data = await response.json();
+        const response = await api.get('/count-prefixes');
+        const data = response.data;
 
         // Convert the list of prefixes into a dictionary for easier access
         const prefixCountMap = data.reduce((acc, { prefix, hours_worked, days_worked }) => {
@@ -67,20 +60,20 @@ const AllProducts = () => {
   // Filter products based on the prefix and search query, and sort by prepix with number suffix in descending order
   const filterProductsByPrefixAndSearch = (prefixCode) => {
     const searchQuery = (searchQueries[prefixCode]?.toLowerCase() || '').trim();
-  
+
     return products
       .filter((product) => {
         const productName = product.pname?.toLowerCase() || '';
         const productId = product.id?.toString() || '';
         const prefixColumn = product.prepix || '';
-  
+
         // Check if the product matches the prefix
         const matchesPrefix = prefixColumn.startsWith(prefixCode);
-  
+
         // Check if the product name or id matches the search query
         const matchesSearchQuery =
           productName.includes(searchQuery) || productId.includes(searchQuery);
-  
+
         // Return products that match both the prefix and the search query
         return matchesPrefix && matchesSearchQuery;
       })
@@ -90,15 +83,15 @@ const AllProducts = () => {
           const match = prefix.match(/[A-Za-z]+(\d+)/); // Match numeric part after alphabetic prefix
           return match ? parseInt(match[1], 10) : 0;  // Default to 0 if no numeric part found
         };
-  
+
         const numA = getNumericSuffix(a.prepix);
         const numB = getNumericSuffix(b.prepix);
-  
+
         // Sort in descending order by the numeric suffix
         return numB - numA;
       });
   };
-  
+
   // Prefix mapping for categories
   const prefixMapping = {
     N: { name: 'Nutra', color: 'bg-orange-500', icon: <FaHandHoldingHeart className="text-white" /> },
@@ -125,7 +118,7 @@ const AllProducts = () => {
     try {
       const confirmDelete = window.confirm("Are you sure you want to delete this product?");
       if (confirmDelete) {
-        await axios.delete(`http://localhost:3000/Delete-Product/${id}`);
+        await api.delete(`/Delete-Product/${id}`);
 
         // Immediately remove the deleted product from the UI
         setProducts((prevProducts) => prevProducts.filter((product) => product.id !== id));
@@ -157,7 +150,7 @@ const AllProducts = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.put(`http://localhost:3000/Edit-Product/${selectedProduct.id}`, {
+      const response = await api.put(`/Edit-Product/${selectedProduct.id}`, {
         pname: selectedProduct.pname,
         prepix: selectedProduct.prepix,
       });
@@ -276,7 +269,7 @@ const AllProducts = () => {
                           onClick={() => handleDelete(product.id)}
                           className="bg-red-500 hover:bg-red-700 px-3 py-1.5  rounded-md"
                         >
-                           <FaTrashAlt className="inline-block mr-1" />
+                          <FaTrashAlt className="inline-block mr-1" />
                           Delete
                         </button>
                       </td>
@@ -288,8 +281,6 @@ const AllProducts = () => {
 
           </table>
         </div>
-
-
 
         {/* Modal for Editing Product */}
         <Modal isOpen={isEditModalOpen} onRequestClose={() => setIsEditModalOpen(false)} className="bg-white p-6 w-1/3 mx-auto rounded-lg shadow-lg mt-36">

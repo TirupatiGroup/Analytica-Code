@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../../api/axios';
 import Select from 'react-select'; // Import the react-select component
 import Sidebar from '../../../components/HSidebar';
 import { FaEdit, FaTrash, FaChevronDown, FaChevronUp } from 'react-icons/fa';
@@ -24,7 +24,7 @@ const DailyReport = () => {
   // Fetch all users for the dropdown
   const fetchUsers = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/pass-users');
+      const res = await api.get('/api/pass-users');
       const userOptions = res.data.map((user) => ({
         value: user.id,
         label: `${user.username} - ${user.ename}`,
@@ -41,7 +41,7 @@ const DailyReport = () => {
     setIsLoading(true);
     setErrorMessage(''); // Clear previous errors
     try {
-      const res = await axios.get(`http://localhost:3000/reports/${date}`);
+      const res = await api.get(`/reports/${date}`);
 
       if (res.data.length === 0) {
         // If no reports are found, show this message
@@ -97,12 +97,12 @@ const DailyReport = () => {
 
     try {
       if (editReportId) {
-        await axios.put(`http://localhost:3000/reports/${editReportId}`, {
+        await api.put(`/reports/${editReportId}`, {
           report_details: editReportDetails,
         });
         alert('Report updated successfully!');
       } else {
-        await axios.post('http://localhost:3000/reports', data);
+        await api.post('/reports', data);
         alert('Report submitted successfully!');
       }
       resetForm();
@@ -120,7 +120,7 @@ const DailyReport = () => {
   // Delete report
   const handleDelete = async (reportId) => {
     try {
-      await axios.delete(`http://localhost:3000/reports/${reportId}`);
+      await api.delete(`/reports/${reportId}`);
       alert('Report deleted successfully!');
       fetchReports(date);
     } catch (err) {
@@ -158,7 +158,7 @@ const DailyReport = () => {
   return (
     <div className="flex flex-col lg:flex-row bg-gray-50 min-h-screen">
       <Sidebar />
-      <div className="flex-grow ml-60 p-8 bg-gray-50">
+      <div className="flex-grow lg:ml-60 p-4 lg:p-8 bg-gray-50">
         <header className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Daily Reporting</h1>
           <p className="text-gray-600 mt-2">Manage and track your daily reports efficiently.</p>
@@ -197,8 +197,6 @@ const DailyReport = () => {
                 required
               />
             </div>
-
-
 
             {/* Report Details */}
             <div>
