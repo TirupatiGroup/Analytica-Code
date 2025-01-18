@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../../api/axios'; // Import the Axios API module
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrashAlt, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -38,8 +38,8 @@ const TestSubTestTable = ({
 
   // Fetch TRF data
   const fetchData = () => {
-    const url = `http://localhost:3000/trfs/${vertical}/${trfid}`;
-    axios.get(url)
+    const url = `/trfs/${vertical}/${trfid}`;
+    api.get(url)
       .then(response => setTrfData(response.data))
       .catch(error => console.error('Error fetching TRF data:', error));
   };
@@ -62,8 +62,8 @@ const TestSubTestTable = ({
       return;
     }
 
-    const url = `http://localhost:3000/trfs/${vertical}/${trfid}/${field}`;
-    axios.put(url, { [field]: username })
+    const url = `/trfs/${vertical}/${trfid}/${field}`;
+    api.put(url, { [field]: username })
       .then(response => {
         alert(response.data.message);
         fetchData(); // Refresh data after update

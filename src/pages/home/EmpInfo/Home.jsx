@@ -1,10 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import ReactModal from 'react-modal';
 import Avatar from '../../../assets/home/Avatar.jpg';
 import { FaTimes, FaTrashAlt } from 'react-icons/fa';
-
+import api from '../../../api/axios';
 const Home = () => {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -30,7 +29,7 @@ const Home = () => {
     useEffect(() => {
         const fetchEmployees = async () => {
             try {
-                const response = await axios.get('http://localhost:3000/employees');
+                const response = await api.get('/employees');
                 setEmployees(response.data);
             } catch (err) {
                 setError('Error fetching employees');
@@ -46,7 +45,7 @@ const Home = () => {
     const openViewModal = async (employeeId) => {
         setLoadingModal(true);
         try {
-            const response = await axios.get(`http://localhost:3000/employees/${employeeId}`);
+            const response = await api.get(`/employees/${employeeId}`);
             setEmployeeToView(response.data);
             setIsViewModalOpen(true);
         } catch (error) {
@@ -60,7 +59,7 @@ const Home = () => {
     const openEditModal = async (employeeId) => {
         setLoadingModal(true);
         try {
-            const response = await axios.get(`http://localhost:3000/employees/${employeeId}`);
+            const response = await api.get(`/employees/${employeeId}`);
             setEmployeeToEdit(response.data);
             setEditFields(response.data); // Prepopulate form fields
             setIsEditModalOpen(true);
@@ -81,8 +80,8 @@ const Home = () => {
     const handleUpdate = async () => {
         setUpdating(true);
         try {
-            const response = await axios.put(
-                `http://localhost:3000/employees/${employeeToEdit.id}`,
+            const response = await api.put(
+                `/employees/${employeeToEdit.id}`,
                 editFields
             );
             setEmployees((prev) =>
@@ -101,7 +100,7 @@ const Home = () => {
     const handleDelete = async (employeeId) => {
         if (window.confirm('Are you sure you want to delete this employee?')) {
             try {
-                await axios.delete(`http://localhost:3000/employees/${employeeId}`);
+                await api.delete(`/employees/${employeeId}`);
                 setEmployees((prev) => prev.filter((emp) => emp.id !== employeeId));
             } catch (err) {
                 setError('Error deleting employee');

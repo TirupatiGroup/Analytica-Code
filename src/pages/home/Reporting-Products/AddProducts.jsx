@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // For API requests
+import api from '../../../api/axios'; // For API requests
 import { toast, ToastContainer } from 'react-toastify';  
 import 'react-toastify/dist/ReactToastify.css';  
 
@@ -29,7 +29,7 @@ const AddProduct = () => {
   // Fetch the last 5 products from the API, sorted by most recent first
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/all-products');
+      const response = await api.get('/all-products');
       
       // Sort the products by id (assuming "id" is the field that increments with new products)
       const sortedProducts = response.data.sort((a, b) => b.id - a.id); // Sorting in descending order
@@ -55,7 +55,7 @@ const AddProduct = () => {
     if (prefix && productName) {
       try {
         // Call the API to add a product
-        const response = await axios.post('http://localhost:3000/Add-Product', {
+        const response = await api.post('/Add-Product', {
           prepix: prefix,        // Updated to match backend key
           pname: productName,    // Updated to match backend key
         });
@@ -85,7 +85,7 @@ const AddProduct = () => {
     try {
       const confirmDelete = window.confirm("Are you sure you want to delete this product?");
       if (confirmDelete) {
-        await axios.delete(`http://localhost:3000/Delete-Product/${id}`);
+        await api.delete(`/Delete-Product/${id}`);
         toast.success('Product deleted successfully!', { position: 'top-right' });
         fetchProducts(); // Refresh the product list after deletion
       }

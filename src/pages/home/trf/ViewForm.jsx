@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../../api/axios';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import Sidebar from '../../../components/HSidebar';
@@ -58,15 +58,12 @@ const ViewFrom = () => {
       return;
     }
 
-    const apiUrl = `http://localhost:3000/trfs/${vertical}/${trfid}`;
+    const apiUrl = `/trfs/${vertical}/${trfid}`;
 
     const fetchData = async () => {
       try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const data = await response.json();
+        const response = await api.get(apiUrl);
+        const data = response.data;
         setData(data);
         setTestData(data.testData || []);
         setSubTestData(data.subTestResults || []);
@@ -79,6 +76,8 @@ const ViewFrom = () => {
 
     fetchData();
   }, [vertical, trfid]);
+  
+  
   //  Add test 
   const handleAddTest = async () => {
     if (!newTest.test) {
@@ -105,8 +104,8 @@ const ViewFrom = () => {
         unit: unit || "",
       };
 
-      const response = await axios.post(
-        `http://localhost:3000/trfs/${vertical}/${trfid}`,
+      const response = await api.post(
+        `/trfs/${vertical}/${trfid}`,
         payload
       );
 
@@ -189,8 +188,8 @@ const ViewFrom = () => {
       };
 
       // Send the update request to the backend
-      const response = await axios.put(
-        `http://localhost:3000/trfs/${vertical}/${trfid}/${selectedTest.id}/test`,
+      const response = await api.put(
+        `/trfs/${vertical}/${trfid}/${selectedTest.id}/test`,
         updateData
       );
 
@@ -219,7 +218,7 @@ const ViewFrom = () => {
 
     try {
       // Delete the associated sub-tests
-      await axios.delete(`http://localhost:3000/trfs/${vertical}/${trfid}/${id}`);
+      await api.delete(`/trfs/${vertical}/${trfid}/${id}`);
 
       // Remove the test from the state
       setTestData(testData.filter((test) => test.id !== id));
@@ -258,8 +257,8 @@ const ViewFrom = () => {
       const userName = user ? user.ename : 'Unknown User'; // Default to 'Unknown User' if not available
 
       // Make the PUT request to update the result
-      const response = await axios.put(
-        `http://localhost:3000/trfs/${vertical}/${trfid}/${selectedTestResult.id}/result`,
+      const response = await api.put(
+        `/trfs/${vertical}/${trfid}/${selectedTestResult.id}/result`,
         {
           updateby: userName, // Use the user's name as the updateby field
           results: editResultData.results, // The new results
@@ -287,8 +286,8 @@ const ViewFrom = () => {
     if (window.confirm('Are you sure you want to clear the result data?')) {
       try {
         // Make the PUT request to clear the result field (not delete the test)
-        const response = await axios.put(
-          `http://localhost:3000/trfs/${vertical}/${trfid}/${testId}/result/clear`
+        const response = await api.put(
+          `/trfs/${vertical}/${trfid}/${testId}/result/clear`
         );
 
         // Update the test data state to reflect the cleared result
@@ -318,8 +317,8 @@ const ViewFrom = () => {
       const claimWithUnit = `${newSubTest.claim} ${unit}`.trim();
 
       // Make the API request to add the sub-test
-      const response = await axios.post(
-        `http://localhost:3000/trfs/${vertical}/${trfid}/subtests`,
+      const response = await api.post(
+        `/trfs/${vertical}/${trfid}/subtests`,
         {
           testid: modalTestId, // Use the modalTestId here
           test: newSubTest.test,
@@ -417,8 +416,8 @@ const ViewFrom = () => {
       };
 
       // Send the PUT request to update the sub-test
-      const response = await axios.put(
-        `http://localhost:3000/trfs/${vertical}/${trfid}/subtests/${selectedSubTest.sub_testid}`,
+      const response = await api.put(
+        `/trfs/${vertical}/${trfid}/subtests/${selectedSubTest.sub_testid}`,
         updateData
       );
 
@@ -449,7 +448,7 @@ const ViewFrom = () => {
     if (!confirmDelete) return;
 
     try {
-      await axios.delete(`http://localhost:3000/trfs/${vertical}/${trfid}/subtests/${subTestId}`); // Use subTestId parameter here
+      await api.delete(`/trfs/${vertical}/${trfid}/subtests/${subTestId}`); // Use subTestId parameter here
       setSubTestData((prevData) => prevData.filter(subTest => subTest.sub_testid !== subTestId)); // Filter using sub_testid
       alert("Sub-test deleted successfully.");
     } catch (error) {
@@ -485,8 +484,8 @@ const ViewFrom = () => {
       const userName = user ? user.ename : 'Unknown User'; // Default to 'Unknown User' if not available
 
       // Make the PUT request to update the sub-test result
-      const apiUrl = `http://localhost:3000/trfs/${vertical}/${trfid}/subtests/${activeSubTest.sub_testid}/subresults`;
-      const response = await axios.put(apiUrl, {
+      const apiUrl = `/trfs/${vertical}/${trfid}/subtests/${activeSubTest.sub_testid}/subresults`;
+      const response = await api.put(apiUrl, {
         updateby: userName,
         results: subTestFormData.results,
       });
@@ -520,8 +519,8 @@ const ViewFrom = () => {
     if (window.confirm('Are you sure you want to clear the result data for this subtest?')) {
       try {
         // Make the PUT request to clear the sub-test result
-        const apiUrl = `http://localhost:3000/trfs/${vertical}/${trfid}/subtests/${subTestId}/subresults/clear`;
-        const response = await axios.put(apiUrl);
+        const apiUrl = `/trfs/${vertical}/${trfid}/subtests/${subTestId}/subresults/clear`;
+        const response = await api.put(apiUrl);
 
         // Optimistically update the local state to reflect the cleared result
         setSubTestData((prevData) =>

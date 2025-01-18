@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../../api/axios'; // Import the Axios API module
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckCircle, faArrowDown, faEdit } from '@fortawesome/free-solid-svg-icons';
 import Skeleton from 'react-loading-skeleton'; // Import the Skeleton component
@@ -24,8 +24,8 @@ const UpdateFieldButtons = ({ vertical, trfid }) => {
     // Fetch the TRF data when the component mounts
     const fetchData = () => {
         setLoading(true); // Set loading to true before fetching data
-        const url = `http://localhost:3000/trfs/${vertical}/${trfid}`;
-        axios.get(url)
+        const url = `/trfs/${vertical}/${trfid}`;
+        api.get(url)
             .then(response => {
                 setData(response.data);
                 setLoading(false); // Set loading to false after data is fetched
@@ -57,8 +57,8 @@ const UpdateFieldButtons = ({ vertical, trfid }) => {
             return;
         }
 
-        const url = `http://localhost:3000/trfs/${vertical}/${trfid}/${field}`;
-        axios.put(url, { [field]: username })
+        const url = `/trfs/${vertical}/${trfid}/${field}`;
+        api.put(url, { [field]: username })
             .then(response => {
                 alert(response.data.message);
                 fetchData(); // Refresh data after update

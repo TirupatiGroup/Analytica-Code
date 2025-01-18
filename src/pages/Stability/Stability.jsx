@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+// import axios from 'axios';
 import AddProductModal from './AddProductModal';
 import EditProductModal from './EditProductModal';
 import { FaPills, FaHandHoldingHeart, FaBasketballBall, FaLeaf, FaFilter, FaPlus } from 'react-icons/fa';
 import Sidebar from '../../components/HSidebar';
+import api from '../../api/axios';
+import { useNavigate } from 'react-router-dom';
 
 const Stability = () => {
     const [products, setProducts] = useState([]);
@@ -13,12 +15,17 @@ const Stability = () => {
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [editProduct, setEditProduct] = useState(null);
     const [activeFilter, setActiveFilter] = useState('All'); // Track active filter
+    const navigate = useNavigate();
+
+    const viewProduct = (id) => {
+        navigate(`/stability/product/${id}`);
+    };
 
     // Fetch all products
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await axios.get('http://localhost:3000/api/stability_products');
+                const response = await api.get('/api/stability');
                 const sortedProducts = response.data.sort((a, b) => b.id - a.id); // Sort in descending order
                 setProducts(sortedProducts);
                 setFilteredProducts(sortedProducts); // Initially show all products
@@ -50,7 +57,7 @@ const Stability = () => {
     // Handle adding a new product
     const handleAddProduct = async (data) => {
         try {
-            const response = await axios.post('http://localhost:3000/api/stability_products', data);
+            const response = await api.post('/api/stability', data);
             const updatedProducts = [...products, response.data];
             setProducts(updatedProducts); // Update the full product list
             setFilteredProducts(updatedProducts); // Update the filtered product list
@@ -63,7 +70,7 @@ const Stability = () => {
     // Handle editing a product
     const handleEditProduct = async (data) => {
         try {
-            await axios.put(`http://localhost:3000/api/stability_products/${data.id}`, data);
+            await api.put(`/api/stability/${data.id}`, data);
             const updatedProducts = products.map((product) =>
                 product.id === data.id ? data : product
             );
@@ -78,7 +85,7 @@ const Stability = () => {
     // Handle deleting a product
     const handleDeleteProduct = async (id) => {
         try {
-            await axios.delete(`http://localhost:3000/api/stability_products/${id}`);
+            await api.delete(`/api/stability/${id}`);
             const updatedProducts = products.filter((product) => product.id !== id);
             setProducts(updatedProducts);
             setFilteredProducts(updatedProducts);
@@ -158,7 +165,7 @@ const Stability = () => {
                     <div className="overflow-x-auto mt-1">
                         <table className="min-w-full table-auto border-collapse">
                             <thead>
-                                <tr className="bg-teal-custom text-white">
+                                <tr className="bg-teal-custom text-white ">
                                     <th className="border px-4 py-2">ID</th>
                                     <th className="border px-4 py-2">Date</th>
                                     <th className="border px-4 py-2">Product Name</th>
@@ -189,6 +196,7 @@ const Stability = () => {
                                             <td className="border px-2 py-1 flex gap-1">
                                                 <button
                                                     className="bg-teal-custom text-white px-4 py-2 rounded-md"
+                                                    onClick={() => viewProduct(product.id)}
                                                 >
                                                     View
                                                 </button>

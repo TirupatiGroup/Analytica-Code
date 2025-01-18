@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../../api/axios'; // Import the Axios API module
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -19,8 +19,8 @@ const PreparationFieldButtons = ({ vertical, trfid, userRole }) => {
 
     // Fetch the TRF data when the component mounts
     const fetchData = () => {
-        const url = `http://localhost:3000/trfs/${vertical}/${trfid}`;
-        axios.get(url)
+        const url = `/trfs/${vertical}/${trfid}`;
+        api.get(url)
             .then(response => {
                 setData(response.data);
             })
@@ -44,8 +44,8 @@ const PreparationFieldButtons = ({ vertical, trfid, userRole }) => {
             return;
         }
 
-        const url = `http://localhost:3000/trfs/${vertical}/${trfid}/${field}`;
-        axios.put(url, { [field]: username })
+        const url = `/trfs/${vertical}/${trfid}/${field}`;
+        api.put(url, { [field]: username })
             .then(response => {
                 alert(response.data.message);
                 fetchData(); // Refresh data after update
