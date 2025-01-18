@@ -26,6 +26,7 @@ import QuarterlyReport from './pages/home/DailyReport/QuarterlyReport';
 import BRM from './pages/home/BRM/BRM';
 import SampleFlow from './pages/home/Sample-Flow/SampleFlow';
 import Stability from './pages/Stability/Stability';
+import ViewProduct from './pages/Stability/ViewProduct';
 const ProtectedRoute = ({ children }) => {
     const { user } = useAuth();
 
@@ -92,6 +93,7 @@ const App = () => {
                         <Route path='/BRM' element={<ProtectedRoute><BRM/></ProtectedRoute>}/>
                         <Route path='/SampleFlow' element={<ProtectedRoute><SampleFlow/></ProtectedRoute>}/>
                         <Route path='/stability' element={<ProtectedRoute><Stability/></ProtectedRoute>}/>
+                        <Route path='/stability/product/:id' element={<ProtectedRoute><ViewProduct/></ProtectedRoute>}/>
                         <Route path="*" element={<Navigate to="/" />} />
                     </Routes>
                 </Layout>

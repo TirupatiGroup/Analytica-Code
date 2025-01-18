@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import Sidebar from '../components/HSidebar';
 import { AiFillEye, AiFillEyeInvisible } from "react-icons/ai";
 const Register = () => {
@@ -109,7 +109,7 @@ const Register = () => {
             }
 
             // Send POST request to the backend
-            const response = await axios.post('http://localhost:3000/register', formDataToSend, {
+            const response = await api.post('/register', formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

@@ -182,7 +182,7 @@ app.post('/login', (req, res) => {
 // All Employee routes
 app.use('/employees', employeesRoutes);
 // Stability  routes 
-app.use('/api/stability_products', stabilityProductsRoutes); 
+app.use('/api/stability', stabilityProductsRoutes); 
 
 // Products routes
 app.use('/', productRoutes);

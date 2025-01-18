@@ -1,6 +1,6 @@
 import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSearch, faClipboardList, faFileAlt, faHome, faUser, faList, faLeaf, faRunning, faCapsules, faUserMd, faPrescriptionBottleMedical, faScaleBalanced } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faSearch, faClipboardList,faVialCircleCheck,faSheetPlastic,  faFileAlt, faHome, faUser, faList, faLeaf, faRunning, faCapsules, faUserMd, faPrescriptionBottleMedical, faScaleBalanced,faCalendarAlt } from '@fortawesome/free-solid-svg-icons';
 import { Link, useLocation } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -22,18 +22,12 @@ const Sidebar = () => {
       { path: '/daily-reporting', label: 'Reporting', icon: faFileAlt },
       { path: '/daily-reporting/quarterly-reporting', label: 'Quarterly Report', icon: faClipboardList },
     ],
-    '/trfs': (vertical) => {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const username = user ? user.username : '';
-      const allowedUsernames = ['101', '201', '301', '401'];
-      const canGenerateTRF = allowedUsernames.includes(username);
-
-      const links = [];
-      if (canGenerateTRF) {
-        links.push({ path: `/trfs/${vertical}/test-request-form`, label: 'Generate TRF Number', icon: faPlus });
-      }
-      return links;
-    },
+    '/stability': [
+      { path: '/stability', label: 'Stability Products', icon: faList },
+      { path: '/stability/protocols', label: 'Stability Planner', icon: faCalendarAlt },
+      { path: '/stability/protocols', label: 'Stability Samples', icon: faVialCircleCheck },
+      { path: '/stability/storage', label: 'Summary Sheets', icon: faSheetPlastic },
+    ],
     '/OldDashBoard': [
       { path: '/OldDashBoard/Nutra', label: 'Nutra', icon: faLeaf },
       { path: '/OldDashBoard/Sports', label: 'Sports', icon: faRunning },
@@ -54,22 +48,24 @@ const Sidebar = () => {
     specificLinks = routeSpecificLinks['/Products-reporting'];
   } else if (currentPath.startsWith('/daily-reporting')) {
     specificLinks = routeSpecificLinks['/daily-reporting'];
+  } else if (currentPath.startsWith('/stability')) {
+    specificLinks = routeSpecificLinks['/stability'];
   } else if (currentPath.startsWith('/OldDashBoard')) {
     specificLinks = routeSpecificLinks['/OldDashBoard'];
-  } else if (currentPath.startsWith('/trfs')) {
-    const vertical = JSON.parse(localStorage.getItem('user'))?.vertical || 'default';
-    specificLinks = routeSpecificLinks['/trfs'](vertical);
   } else {
     specificLinks = routeSpecificLinks[currentPath] || [];
   }
 
   // User department and background color logic
   const user = JSON.parse(localStorage.getItem('user'));
-  const vertical = user ? user.vertical : 'default';
   const department = user ? user.depart : 'default';
 
   let title, description, bgColor;
-  if (department === 'frd') {
+  if (currentPath.startsWith('/stability')) {
+    title = 'Stability';
+    description = 'Stability Testing Section';
+    bgColor = 'bg-teal-custom';
+  } else if (department === 'frd') {
     title = 'F.R.D.';
     description = 'Formulation Research and Development';
     bgColor = 'bg-orange-500';
@@ -93,7 +89,7 @@ const Sidebar = () => {
       <hr className="w-full pb-6" />
 
       {/* Links Container */}
-      <div className="flex-grow ">
+      <div className="flex-grow">
         {/* Default Links */}
         {defaultLinks.map(({ path, icon, label }) => (
           <div className="mb-6" key={path}>

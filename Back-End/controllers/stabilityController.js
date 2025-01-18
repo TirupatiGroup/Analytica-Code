@@ -4,147 +4,212 @@ const { executeQuery } = require('../config/db');
 const getAllStabilityProducts = async (req, res) => {
     try {
         const results = await executeQuery(
-            'SELECT * FROM stability_products ORDER BY id DESC' // Sort by id in descending order
+            'SELECT * FROM stability_products ORDER BY id DESC'
         );
         res.json(results);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error fetching all stability products:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-// GET a single stability product by ID
 const getStabilityProductById = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Query to fetch data from stability_products and related tables
-        const query = `
-            SELECT 
-                sp.*,
-                ltsr.*,
-                sbd.*,
-                sbcd.*,
-                sltr.*,
-                ssp.*
-            FROM 
-                stability_products sp
-            LEFT JOIN stability_lt_sub_results ltsr ON sp.id = ltsr.pid
-            LEFT JOIN stability_batch_details sbd ON sp.id = sbd.pid
-            LEFT JOIN stability_batch_condition_details sbcd ON sp.id = sbcd.pid
-            LEFT JOIN stability_lt_results sltr ON sp.id = sltr.pid
-            LEFT JOIN stability_summary_products ssp ON sp.id = ssp.pid
-            WHERE sp.id = ?;
-        `;
+        // console.log('Fetching product with ID:', id); // Debug log
 
-        console.log('Executing query:', query, 'with ID:', id);
-
-        // Execute the query with the parameterized value
+        const query = 'SELECT * FROM stability_products WHERE id = ?;';
         const results = await executeQuery(query, [id]);
 
-        res.json(results.length > 0 ? results : []); // Return results or an empty array if no match
+
+
+        if (results.length === 0) {
+            console.warn(`No product found for ID: ${id}`); // Debug log
+            return res.status(404).json({ message: 'Stability product not found' });
+        }
+
+        res.json(results[0]);
     } catch (error) {
-        console.error('SQL Error:', error); // Log the error for debugging
-        res.status(500).json({ error: error.message });
+        console.error(`Error fetching product with ID ${id}:`, error.message);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
-
+// ADD a new stability product
 const addStabilityProduct = async (req, res) => {
-    const data = req.body;
-
-    // Check if all required fields are in data
-    // console.log('Data received for product:', data);
-
-    // Query with explicit column names
-    const query = `
-        INSERT INTO stability_products 
-        (pname, ppacking, protocol, spacking, packsize, reqby, reqdate, vertical, sampleby, samplercby, labelc) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    // Array of values to be inserted
-    const values = [
-        data.pname,
-        data.ppacking,
-        data.protocol,
-        data.spacking,
-        data.packsize,
-        data.reqby,
-        data.reqdate,
-        data.vertical,
-        data.sampleby,
-        data.samplercby,
-        data.labelc
-    ];
-
-    // console.log('Values to be inserted:', values);
+    const {
+        pname, ppacking, protocol, spacking, packsize,
+        reqby, reqdate, vertical, sampleby, samplercby, labelc
+    } = req.body;
 
     try {
-        // Execute the query with the parameterized values
+        const query = `
+            INSERT INTO stability_products 
+            (pname, ppacking, protocol, spacking, packsize, reqby, reqdate, vertical, sampleby, samplercby, labelc) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const values = [pname, ppacking, protocol, spacking, packsize, reqby, reqdate, vertical, sampleby, samplercby, labelc];
         const result = await executeQuery(query, values);
+
         res.json({ message: 'Product added successfully!', id: result.insertId });
     } catch (error) {
-        console.error('SQL Error:', error); // Log the error for debugging
-        res.status(500).json({ error: error.message });
+        console.error('Error adding stability product:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
-// PUT to update a stability product by ID
+
+// UPDATE a stability product by ID
 const updateStabilityProduct = async (req, res) => {
     const { id } = req.params;
-    const data = req.body;
+    const {
+        pname, ppacking, protocol, spacking, packsize,
+        reqby, reqdate, vertical, sampleby, samplercby, labelc
+    } = req.body;
 
     try {
-        // Check if the product exists first
         const existingProduct = await executeQuery('SELECT * FROM stability_products WHERE id = ?', [id]);
-        if (!existingProduct.length) {
+        if (existingProduct.length === 0) {
             return res.status(404).json({ error: 'Product not found' });
         }
 
-        // Construct the query manually to avoid issues with SET ?
         const query = `
             UPDATE stability_products 
             SET pname = ?, ppacking = ?, protocol = ?, spacking = ?, packsize = ?, reqby = ?, reqdate = ?, vertical = ?, sampleby = ?, samplercby = ?, labelc = ?
-            WHERE id = ?`;
-
-        // Prepare the values to be updated
-        const values = [
-            data.pname, data.ppacking, data.protocol, data.spacking, data.packsize, data.reqby, data.reqdate,
-            data.vertical, data.sampleby, data.samplercby, data.labelc, id
-        ];
-
-        // console.log('Executing query:', query, 'with values:', values);
-
-        // Execute the query with the provided values
+            WHERE id = ?
+        `;
+        const values = [pname, ppacking, protocol, spacking, packsize, reqby, reqdate, vertical, sampleby, samplercby, labelc, id];
         await executeQuery(query, values);
 
         res.json({ message: 'Product updated successfully!' });
     } catch (error) {
-        console.error('Error during update:', error);
-        res.status(500).json({ error: error.message });
+        console.error(`Error updating product with ID ${id}:`, error.message);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
+
 // DELETE a stability product by ID
 const deleteStabilityProduct = async (req, res) => {
     const { id } = req.params;
+
     try {
-        // Delete the product from the table
+        const productExists = await executeQuery('SELECT * FROM stability_products WHERE id = ?', [id]);
+        if (productExists.length === 0) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
+
         await executeQuery('DELETE FROM stability_products WHERE id = ?', [id]);
+        await executeQuery('ALTER TABLE stability_products AUTO_INCREMENT = (SELECT MAX(id) + 1 FROM stability_products)');
 
-        // Construct the ALTER TABLE query dynamically
-        const query = `ALTER TABLE stability_products AUTO_INCREMENT = ${id}`;
-        await executeQuery(query);
-
-        res.json({ message: `Product with ID ${id} deleted and AUTO_INCREMENT reset to ${id} successfully!` });
+        res.json({ message: `Product with ID ${id} deleted successfully!` });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error(`Error deleting product with ID ${id}:`, error.message);
+        res.status(500).json({ error: 'Internal server error' });
     }
 };
 
+// GET protocols by product ID
+const getProtocolsByProductId = async (req, res) => {
+    const { id } = req.params;
 
+    try {
+        const results = await executeQuery(
+            'SELECT * FROM upload_protocols WHERE pid = ?',
+            [id]
+        );
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: `No protocols found for product ID ${id}` });
+        }
+
+        res.json(results);
+    } catch (error) {
+        console.error(`Error fetching protocols for product ID ${id}:`, error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// GET test details by product ID, including subtests
+const getTestDetailsByProductId = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Fetch tests by pid
+        const tests = await executeQuery(
+            `SELECT * 
+             FROM trftestforstability 
+             WHERE pid = ?`,
+            [id]
+        );
+
+        if (tests.length === 0) {
+            return res.status(404).json({ message: 'No tests found for the given product ID.' });
+        }
+
+        // Fetch subtests where trfid matches pid
+        const subtests = await executeQuery(
+            `SELECT * 
+             FROM trf_sub_testforstability 
+             WHERE trfid = ?`,
+            [id]
+        );
+
+        // Group subtests by their corresponding test
+        const subtestsByTestId = subtests.reduce((acc, subtest) => {
+            if (!acc[subtest.testid]) {
+                acc[subtest.testid] = [];
+            }
+            acc[subtest.testid].push(subtest);
+            return acc;
+        }, {});
+
+        // Map tests to include their corresponding subtests
+        const testsWithSubtests = tests.map(test => ({
+            ...test,
+            subtests: subtestsByTestId[test.id] || [], // Add subtests array, or empty array if none exist
+        }));
+
+        res.json(testsWithSubtests);
+    } catch (error) {
+        console.error(`Error fetching test details for product ID ${id}:`, error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// GET batch details by product ID
+const getBatchDetailsByProductId = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const results = await executeQuery('SELECT * FROM stability_batch_details WHERE pid = ?', [id]);
+        res.json(results);
+    } catch (error) {
+        console.error(`Error fetching batch details for product ID ${id}:`, error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// GET storage conditions by product ID
+const getStorageConditionsByProductId = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const results = await executeQuery('SELECT * FROM stability_batch_condition_details WHERE pid = ?', [id]);
+        res.json(results);
+    } catch (error) {
+        console.error(`Error fetching storage conditions for product ID ${id}:`, error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
 
 module.exports = {
     getAllStabilityProducts,
     getStabilityProductById,
     addStabilityProduct,
     updateStabilityProduct,
-    deleteStabilityProduct
+    deleteStabilityProduct,
+    getProtocolsByProductId,
+    getTestDetailsByProductId,
+    getBatchDetailsByProductId,
+    getStorageConditionsByProductId
 };
