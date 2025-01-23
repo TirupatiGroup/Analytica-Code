@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const upload = require('../config/multer');
 const stabilityController = require('../controllers/stabilityController');
 
 // GET all stability products
@@ -22,9 +23,44 @@ router.get('/products/:id', stabilityController.getStabilityProductById);
 
 // GET protocols by product IDs
 router.get('/protocols/:id', stabilityController.getProtocolsByProductId);
+router.post('/protocols', upload.single('file'), stabilityController.addProtocolWithFile); // POST a protocol with file upload
+// PUT: Update an existing protocol
+router.put('/protocols/:id', stabilityController.updateProtocol);
+
+// DELETE: Delete a protocol by ID
+router.delete('/protocols/:id', stabilityController.deleteProtocol);
 
 // GET test details by product ID
 router.get('/test-details/:id', stabilityController.getTestDetailsByProductId);
+
+// Route to add a new test with subtests
+router.post('/tests', stabilityController.addTest);
+router.post('/subtest', stabilityController.addSubtests);
+
+// Route to delete a test with subtests
+router.delete('/tests/:testId', stabilityController.deleteTestWithSubtests);
+
+// Route to update a test with subtests
+router.put('/tests/:testId', stabilityController.updateTestWithSubtests);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // GET batch details by product ID
 router.get('/batch-details/:id', stabilityController.getBatchDetailsByProductId);

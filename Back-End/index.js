@@ -194,7 +194,7 @@ app.use('/', categoryRoutes);
 
 
 
-
+// For Trf page route 
 app.get('/trfs/:vertical', (req, res) => {
     const vertical = req.params.vertical;
 
@@ -227,6 +227,7 @@ app.get('/trfs/:vertical', (req, res) => {
         res.json(results); // Make sure this is returning JSON
     });
 });
+// Post TRF data on db 
 app.post('/trfs/:vertical/test-request-form', (req, res) => {
     const vertical = req.params.vertical;
     const { pname, mfgdate, expdate, batchno, batchsize, sampleqty, toard, toardmicro, samplestage, avgwtvol, reqby } = req.body;
@@ -347,6 +348,7 @@ app.post('/trfs/:vertical/test-request-form', (req, res) => {
         });
     });
 });
+
 app.get('/trfs/:vertical/:arn/:field', (req, res) => {
     const vertical = req.params.vertical;
     const arn = req.params.arn;

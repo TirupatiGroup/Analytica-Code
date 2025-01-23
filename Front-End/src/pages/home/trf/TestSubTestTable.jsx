@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import api from '../../../api/axios'; // Import the Axios API module
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -193,7 +191,7 @@ const TestSubTestTable = ({
                 {subTestData
                   .filter(subTest => String(subTest.testid) === String(test.id))
                   .map((subTest, subTestIndex) => (
-                    <tr key={subTest.id} className="border border-1 border-black bg-gray-200">
+                    <tr key={subTest.sub_testid} className="border border-1 border-black bg-gray-200">
                       <td className="p-1 border border-1 border-black">
                         {testIndex + 1}.{subTestIndex + 1}
                       </td>

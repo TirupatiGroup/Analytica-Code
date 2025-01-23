@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
-import AddProductModal from './AddProductModal';
-import EditProductModal from './EditProductModal';
+import AddProductModal from '../Stability/ViewPage/ProductComponents/AddProductModal';
+import EditProductModal from '../Stability/ViewPage/ProductComponents/EditProductModal';
 import { FaPills, FaHandHoldingHeart, FaBasketballBall, FaLeaf, FaFilter, FaPlus } from 'react-icons/fa';
 import Sidebar from '../../components/HSidebar';
 import api from '../../api/axios';
 import { useNavigate } from 'react-router-dom';
-
+import { IoEyeSharp } from 'react-icons/io5';
+import { FaEdit, FaTrash } from 'react-icons/fa';
 const Stability = () => {
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
@@ -14,7 +14,7 @@ const Stability = () => {
     const [isAddModalOpen, setAddModalOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [editProduct, setEditProduct] = useState(null);
-    const [activeFilter, setActiveFilter] = useState('All'); // Track active filter
+    const [activeFilter, setActiveFilter] = useState('All');
     const navigate = useNavigate();
 
     const viewProduct = (id) => {
@@ -28,7 +28,7 @@ const Stability = () => {
                 const response = await api.get('/api/stability');
                 const sortedProducts = response.data.sort((a, b) => b.id - a.id); // Sort in descending order
                 setProducts(sortedProducts);
-                setFilteredProducts(sortedProducts); // Initially show all products
+                setFilteredProducts(sortedProducts);
                 setLoading(false);
             } catch (error) {
                 console.error('Error fetching products:', error);
@@ -39,33 +39,60 @@ const Stability = () => {
         fetchProducts();
     }, []);
 
-    // Open the add product modal
+    // Open and close modals
     const openAddModal = () => setAddModalOpen(true);
-
-    // Close the add product modal
     const closeAddModal = () => setAddModalOpen(false);
-
-    // Open the edit product modal with data
     const openEditModal = (product) => {
         setEditProduct(product);
         setEditModalOpen(true);
     };
-
-    // Close the edit product modal
     const closeEditModal = () => setEditModalOpen(false);
 
     // Handle adding a new product
     const handleAddProduct = async (data) => {
         try {
+            // Temporary: Immediately add the new product to the table before waiting for server response
+            const temporaryNewProduct = {
+                ...data,
+                id: Date.now(), // Use timestamp as a temporary ID (or you can use a UUID)
+                reqdate: new Date().toISOString(), // Ensure ISO string format for reqdate
+            };
+
+            // Optimistically update the products list and filtered products
+            setProducts((prevProducts) => {
+                const updatedProducts = [temporaryNewProduct, ...prevProducts];
+                setFilteredProducts(updatedProducts); // Update filtered products as well
+                return updatedProducts;
+            });
+
+            // Now, call the API to add the product to the database
             const response = await api.post('/api/stability', data);
-            const updatedProducts = [...products, response.data];
-            setProducts(updatedProducts); // Update the full product list
-            setFilteredProducts(updatedProducts); // Update the filtered product list
+
+            // Once the server returns the data, update the product with the actual server response ID
+            setProducts((prevProducts) =>
+                prevProducts.map((product) =>
+                    product.id === temporaryNewProduct.id
+                        ? { ...product, id: response.data.id } // Update with actual ID
+                        : product
+                )
+            );
+
+            setFilteredProducts((prevFilteredProducts) =>
+                prevFilteredProducts.map((product) =>
+                    product.id === temporaryNewProduct.id
+                        ? { ...product, id: response.data.id } // Update with actual ID
+                        : product
+                )
+            );
+
+            // Close the modal after successful addition
             closeAddModal();
         } catch (error) {
             console.error('Error adding product:', error);
+            alert('Failed to add product. Please try again.');
         }
     };
+
 
     // Handle editing a product
     const handleEditProduct = async (data) => {
@@ -84,13 +111,21 @@ const Stability = () => {
 
     // Handle deleting a product
     const handleDeleteProduct = async (id) => {
+        const confirmed = window.confirm('Are you sure you want to delete this product?');
+        if (!confirmed) return;
+
         try {
-            await api.delete(`/api/stability/${id}`);
+            // Optimistically update the UI
             const updatedProducts = products.filter((product) => product.id !== id);
             setProducts(updatedProducts);
             setFilteredProducts(updatedProducts);
+
+            // Delete from the server
+            await api.delete(`/api/stability/${id}`);
+            alert(`Product with ID ${id} deleted successfully!`);
         } catch (error) {
             console.error('Error deleting product:', error);
+            alert('Failed to delete product. Please try again.');
         }
     };
 
@@ -98,7 +133,7 @@ const Stability = () => {
     const filterProducts = (vertical) => {
         setActiveFilter(vertical);
         if (vertical === 'All') {
-            setFilteredProducts(products); // Show all products
+            setFilteredProducts(products);
         } else {
             setFilteredProducts(products.filter((product) => product.vertical === vertical));
         }
@@ -112,7 +147,7 @@ const Stability = () => {
                 <div className="flex justify-between items-center mb-4">
                     {/* Filter Buttons Group */}
                     <div className="flex gap-4">
-                        {[ 
+                        {[
                             { label: 'All', icon: <FaFilter />, bgColor: 'bg-gray-200', textColor: 'text-gray-800' },
                             { label: 'Pharma', icon: <FaPills />, bgColor: 'bg-blue-500', textColor: 'text-white' },
                             { label: 'Nutra', icon: <FaHandHoldingHeart />, bgColor: 'bg-orange-500', textColor: 'text-white' },
@@ -195,23 +230,25 @@ const Stability = () => {
                                             <td className="border px-2 py-1">#</td>
                                             <td className="border px-2 py-1 flex gap-1">
                                                 <button
-                                                    className="bg-teal-custom text-white px-4 py-2 rounded-md"
+                                                    className="text-teal-custom hover:text-teal-500 p-2 rounded-md"
                                                     onClick={() => viewProduct(product.id)}
                                                 >
-                                                    View
+                                                    <IoEyeSharp className="w-5 h-6" /> {/* View Icon */}
                                                 </button>
                                                 <button
                                                     onClick={() => openEditModal(product)}
-                                                    className="bg-blue-500 text-white px-4 py-2 rounded-md"
+                                                    className="text-blue-500 hover:text-blue-400 p-2 rounded-md"
                                                 >
-                                                    Edit
+                                                    <FaEdit className="w-5 h-5" /> {/* Edit Icon */}
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDeleteProduct(product.id)}
-                                                    className="bg-red-500 text-white px-4 py-2 rounded-md"
-                                                >
-                                                    Delete
-                                                </button>
+                                                {activeFilter === 'All' && (
+                                                    <button
+                                                        onClick={() => handleDeleteProduct(product.id)}
+                                                        className="text-red-500 hover:text-red-400 p-2 rounded-md"
+                                                    >
+                                                        <FaTrash className="w-5 h-5" /> {/* Delete Icon */}
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))

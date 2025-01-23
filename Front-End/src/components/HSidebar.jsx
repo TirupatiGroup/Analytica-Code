@@ -25,7 +25,7 @@ const Sidebar = () => {
     '/stability': [
       { path: '/stability', label: 'Stability Products', icon: faList },
       { path: '/stability/protocols', label: 'Stability Planner', icon: faCalendarAlt },
-      { path: '/stability/protocols', label: 'Stability Samples', icon: faVialCircleCheck },
+      { path: '/stability/prot', label: 'Stability Samples', icon: faVialCircleCheck },
       { path: '/stability/storage', label: 'Summary Sheets', icon: faSheetPlastic },
     ],
     '/OldDashBoard': [

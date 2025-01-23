@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const AddProductModal = ({ isOpen, onClose, onSubmit }) => {
     const [formData, setFormData] = useState({
@@ -15,14 +15,44 @@ const AddProductModal = ({ isOpen, onClose, onSubmit }) => {
         labelc: ''
     });
 
+    // Populate reqby and reqdate on component mount
+    useEffect(() => {
+        const userObject = JSON.parse(localStorage.getItem('user')); 
+        const ename = userObject?.ename || 'Unknown'; // Default to "Unknown" if not found
+        const username = userObject?.username || 'Unknown';
+
+        setFormData((prevFormData) => ({
+            ...prevFormData,
+            reqby: `${ename} (${username})`, // Combine ename and username
+            reqdate: new Date().toISOString() // Set current timestamp
+        }));
+    }, []);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        setFormData((prevFormData) => ({
+            ...prevFormData,
+            [name]: value
+        }));
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         onSubmit(formData);
+        // Reset form data after submitting
+        setFormData({
+            pname: '',
+            ppacking: '',
+            protocol: '',
+            spacking: '',
+            packsize: '',
+            reqby: '',
+            reqdate: '',
+            vertical: '',
+            sampleby: '',
+            samplercby: '',
+            labelc: ''
+        });
     };
 
     if (!isOpen) return null;
@@ -77,12 +107,11 @@ const AddProductModal = ({ isOpen, onClose, onSubmit }) => {
                                     <option value="Pharma">Pharma</option>
                                 </select>
                             </div>
-                           
                         </div>
 
                         {/* Align Three Inputs in One Line (Next Set) */}
                         <div className="flex space-x-4">
-                        <div className="w-1/3">
+                            <div className="w-1/3">
                                 <label htmlFor="ppacking" className="block text-sm font-medium text-gray-700">Primary Packing</label>
                                 <input
                                     type="text"
@@ -115,7 +144,6 @@ const AddProductModal = ({ isOpen, onClose, onSubmit }) => {
                                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
-                           
                         </div>
 
                         {/* Align Three Inputs in One Line (Next Set) */}
@@ -155,7 +183,6 @@ const AddProductModal = ({ isOpen, onClose, onSubmit }) => {
                                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
-                           
                         </div>
                     </div>
 

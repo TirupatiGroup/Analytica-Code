@@ -132,37 +132,74 @@ const ViewFrom = () => {
     setEditTestData({ test: '', claim: '', spes: '' });
     setUnit('');
   };
+  // const handleSelectTest = (test) => {
+  //   setSelectedTest(test);
+
+  //   // Remove the unit from the claim
+  //   const claimParts = test.claim.trim().split(' ');
+
+  //   let unit = '';
+  //   if (claimParts.length > 1) {
+  //     unit = claimParts.pop(); // Extract the unit
+  //   }
+
+  //   const claimWithoutUnit = claimParts.join(' '); // Join remaining parts to form the claim
+
+  //   // Handle claim as a string to preserve its format
+  //   let claimValue = claimWithoutUnit;
+
+  //   // If claimWithoutUnit is a valid number, keep it as a string (e.g., "10.000")
+  //   if (!isNaN(claimWithoutUnit)) {
+  //     claimValue = claimWithoutUnit; // Keep it as is (e.g., "10.000")
+  //   }
+
+  //   // Set the state for editing the test
+  //   setEditTestData({
+  //     test: test.test,
+  //     claim: claimValue, // Store as string to preserve format
+  //     spes: test.spes
+  //   });
+
+  //   // Set the unit for the dropdown
+  //   setUnit(unit);
+
+  //   // Open the modal for editing the test
+  //   setModalIsOpen(true);
+  // };
   const handleSelectTest = (test) => {
     setSelectedTest(test);
-
+  
+    // Ensure claim is not null or undefined
+    const claim = test.claim || '';
+  
     // Remove the unit from the claim
-    const claimParts = test.claim.trim().split(' ');
-
+    const claimParts = claim.trim().split(' ');
+  
     let unit = '';
     if (claimParts.length > 1) {
       unit = claimParts.pop(); // Extract the unit
     }
-
+  
     const claimWithoutUnit = claimParts.join(' '); // Join remaining parts to form the claim
-
+  
     // Handle claim as a string to preserve its format
     let claimValue = claimWithoutUnit;
-
+  
     // If claimWithoutUnit is a valid number, keep it as a string (e.g., "10.000")
     if (!isNaN(claimWithoutUnit)) {
       claimValue = claimWithoutUnit; // Keep it as is (e.g., "10.000")
     }
-
+  
     // Set the state for editing the test
     setEditTestData({
       test: test.test,
       claim: claimValue, // Store as string to preserve format
       spes: test.spes
     });
-
+  
     // Set the unit for the dropdown
     setUnit(unit);
-
+  
     // Open the modal for editing the test
     setModalIsOpen(true);
   };
@@ -581,8 +618,10 @@ const ViewFrom = () => {
     const printContent = `
     <html>
       <head>
-        <title>Analysis Report Print</title>
         <style>
+        @page {
+              margin: 15;
+          }
           body {
             font-family: Arial, sans-serif;
             margin: 20px;
@@ -814,6 +853,9 @@ const ViewFrom = () => {
         <head>
           <title>TRF Print </title>
           <style>
+          @page {
+              margin: 15;
+          }
             body {
               font-family: Arial, sans-serif;
               margin: 20px;
@@ -1124,7 +1166,7 @@ const ViewFrom = () => {
                 type="text"
                 placeholder="Test"
                 className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={editTestData.test}
+                value={editTestData.test || ''}
                 onChange={(e) => setEditTestData({ ...editTestData, test: e.target.value })}
               />
               <div className="flex gap-4">
@@ -1132,7 +1174,7 @@ const ViewFrom = () => {
                   type="text"
                   placeholder="Claim"
                   className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
-                  value={editTestData.claim}
+                  value={editTestData.claim || ''}
                   onChange={(e) => setEditTestData({ ...editTestData, claim: e.target.value })}
                 />
                 <select
@@ -1152,7 +1194,7 @@ const ViewFrom = () => {
                 type="text"
                 placeholder="Specification"
                 className="border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={editTestData.spes}
+                value={editTestData.spes || ''}
                 onChange={(e) => setEditTestData({ ...editTestData, spes: e.target.value })}
               />
             </div>

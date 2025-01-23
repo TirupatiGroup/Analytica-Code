@@ -1,5 +1,7 @@
 const { executeQuery } = require('../config/db');
-
+const upload = require('../config/upload');
+const fs = require('fs');
+const path = require('path');
 // GET all stability products
 const getAllStabilityProducts = async (req, res) => {
     try {
@@ -93,21 +95,66 @@ const deleteStabilityProduct = async (req, res) => {
     const { id } = req.params;
 
     try {
+        // Check if the product exists
         const productExists = await executeQuery('SELECT * FROM stability_products WHERE id = ?', [id]);
         if (productExists.length === 0) {
             return res.status(404).json({ error: 'Product not found' });
         }
 
-        await executeQuery('DELETE FROM stability_products WHERE id = ?', [id]);
-        await executeQuery('ALTER TABLE stability_products AUTO_INCREMENT = (SELECT MAX(id) + 1 FROM stability_products)');
+        // Fetch and delete associated tests and subtests
+        const tests = await executeQuery(
+            'SELECT id FROM trftestforstability WHERE pid = ?',
+            [id]
+        );
 
-        res.json({ message: `Product with ID ${id} deleted successfully!` });
+        if (tests.length > 0) {
+            for (const test of tests) {
+                // Delete subtests
+                await executeQuery(
+                    'DELETE FROM trf_sub_testforstability WHERE testid = ?',
+                    [test.id]
+                );
+
+                // Delete tests
+                await executeQuery(
+                    'DELETE FROM trftestforstability WHERE id = ?',
+                    [test.id]
+                );
+            }
+        }
+
+        // Delete associated protocols
+        await executeQuery(
+            'DELETE FROM upload_protocols WHERE pid = ?',
+            [id]
+        );
+
+        // Delete associated batch details
+        await executeQuery(
+            'DELETE FROM stability_batch_details WHERE pid = ?',
+            [id]
+        );
+
+        // Delete associated storage conditions
+        await executeQuery(
+            'DELETE FROM stability_batch_condition_details WHERE pid = ?',
+            [id]
+        );
+
+        // Delete the product
+        await executeQuery('DELETE FROM stability_products WHERE id = ?', [id]);
+
+        // Optionally reset AUTO_INCREMENT value
+        await executeQuery(`ALTER TABLE stability_products AUTO_INCREMENT = ${id}`);
+
+        res.json({ message: `Product with ID ${id} and all associated data deleted successfully!` });
     } catch (error) {
         console.error(`Error deleting product with ID ${id}:`, error.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
 
+{/* For Add More Product */}
 // GET protocols by product ID
 const getProtocolsByProductId = async (req, res) => {
     const { id } = req.params;
@@ -119,7 +166,7 @@ const getProtocolsByProductId = async (req, res) => {
         );
 
         if (results.length === 0) {
-            return res.status(404).json({ error: `No protocols found for product ID ${id}` });
+            return res.status(200).json({ message: `No protocols found for product ID ${id}` });
         }
 
         res.json(results);
@@ -128,7 +175,103 @@ const getProtocolsByProductId = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+// POST protocols 
+const addProtocolWithFile = async (req, res) => {
+    try {
+        const { pname, protocol, vertical, updateby, pid } = req.body;
+        const file = req.file?.filename; // Extract uploaded file
 
+        if (!pname || !protocol || !vertical || !file || !updateby || !pid) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        const result = await executeQuery(
+            `INSERT INTO upload_protocols (pname, protocol, vertical, file, updateby, pid) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [pname, protocol, vertical, file, updateby, pid]
+        );
+
+        res.status(201).json({
+            message: 'Protocol with file added successfully',
+            protocolId: result.insertId
+        });
+    } catch (error) {
+        console.error('Error adding protocol with file:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+// PUT protocols (Update Protocol)
+const updateProtocol = async (req, res) => {
+    try {
+        const { pname, protocol, vertical, updateby, pid } = req.body;
+        const protocolId = req.params.id;  // Get protocol ID from URL params
+        const file = req.file?.filename;  // Extract uploaded file (if any)
+
+        if (!pname || !protocol || !vertical || !updateby || !pid) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        // Update query: Only update the fields that are passed in the request
+        const updateFields = [pname, protocol, vertical, updateby, pid];
+        let query = `UPDATE upload_protocols SET pname = ?, protocol = ?, vertical = ?, updateby = ?, pid = ?`;
+        if (file) {
+            query += `, file = ?`;  // Add file to update query if it exists
+            updateFields.push(file);
+        }
+        query += ` WHERE id = ?`;  // Add condition to update the specific protocol
+        updateFields.push(protocolId);
+
+        const result = await executeQuery(query, updateFields);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Protocol not found' });
+        }
+
+        res.status(200).json({ message: 'Protocol updated successfully' });
+    } catch (error) {
+        console.error('Error updating protocol:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+// DELETE protocols (Delete Protocol)
+const deleteProtocol = async (req, res) => {
+    const { id } = req.params; // Protocol ID from the request URL
+
+    try {
+        // Step 1: Fetch the protocol record to get the file name
+        const protocol = await executeQuery(
+            `SELECT file FROM upload_protocols WHERE id = ?`,
+            [id]
+        );
+
+        if (!protocol || protocol.length === 0) {
+            return res.status(404).json({ error: 'Protocol not found' });
+        }
+
+        const fileName = protocol[0].file;
+
+        // Step 2: Delete the protocol record from the database
+        await executeQuery(`DELETE FROM upload_protocols WHERE id = ?`, [id]);
+
+        // Step 3: Delete the file from the uploads/protocols folder
+        const filePath = path.join(__dirname, '../uploads/protocols', fileName); // Ensure path matches your multer configuration
+
+        fs.unlink(filePath, (err) => {
+            if (err) {
+                console.error('Error deleting file:', err);
+                return res
+                    .status(500)
+                    .json({ error: 'Protocol deleted, but failed to delete file' });
+            }
+        });
+
+        // Step 4: Send a success response
+        res.status(200).json({ message: 'Protocol and file deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting protocol:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
 // GET test details by product ID, including subtests
 const getTestDetailsByProductId = async (req, res) => {
     const { id } = req.params;
@@ -143,7 +286,7 @@ const getTestDetailsByProductId = async (req, res) => {
         );
 
         if (tests.length === 0) {
-            return res.status(404).json({ message: 'No tests found for the given product ID.' });
+            return res.status(200).json({ message: 'No tests found for the given product ID.' });
         }
 
         // Fetch subtests where trfid matches pid
@@ -175,13 +318,202 @@ const getTestDetailsByProductId = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+// POST test details by product ID
+const addTest = async (req, res) => {
+    const { pid, testDetails } = req.body;
 
+    try {
+        const {
+            test,
+            claim,
+            spes,
+            results,
+            file,
+            updateby,
+            resultupdateon,
+            reqby,
+            unit,
+            upby,
+            updateon,
+            inirupby,
+            inirupdateon
+        } = testDetails;
+
+        const testResult = await executeQuery(
+            `INSERT INTO trftestforstability 
+             (pid, test, claim, spes, results, file, updateby, resultupdateon, reqby, unit, upby, updateon, inirupby, inirupdateon) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                pid, test, claim, spes, results, file, updateby, 
+                resultupdateon, reqby, unit, upby, updateon, 
+                inirupby, inirupdateon
+            ]
+        );
+
+        res.status(201).json({
+            message: 'Test added successfully',
+            testId: testResult.insertId
+        });
+    } catch (error) {
+        console.error('Error adding test:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+// Post subtest
+const addSubtests = async (req, res) => {
+    const { pid, testId, subtests } = req.body;
+
+    if (!pid || !testId || !subtests || subtests.length === 0) {
+        return res.status(400).json({ error: "Missing required fields or no subtests provided" });
+    }
+
+    try {
+        const placeholders = subtests
+            .map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)') // One set of ? for each subtest
+            .join(', ');
+
+        const subtestValues = subtests.flatMap(subtest => [
+            pid,      // `trfid` (same as `pid`)
+            testId,   // `testid` (foreign key to test table)
+            subtest.test ,
+            subtest.claim ,
+            subtest.spes ,
+            subtest.results,
+            subtest.file ,
+            subtest.updateby ,
+            subtest.resultupdateon ,
+            subtest.reqby ,
+            subtest.unit ,
+            subtest.samplestage ,
+            subtest.upby,
+            subtest.updateon
+        ]);
+
+        await executeQuery(
+            `INSERT INTO trf_sub_testforstability 
+             (trfid, testid, test, claim, spes, results, file, updateby, resultupdateon, reqby, unit, samplestage, upby, updateon) 
+             VALUES ${placeholders}`,
+            subtestValues
+        );
+
+        res.status(201).json({ message: "Subtests added successfully" });
+    } catch (error) {
+        console.error("Error adding subtests:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+};
+
+
+//Delete Test with Subtests
+const deleteTestWithSubtests = async (req, res) => {
+    const { testId } = req.params;
+
+    try {
+        // Delete subtests first
+        await executeQuery(
+            `DELETE FROM trf_sub_testforstability WHERE testid = ?`,
+            [testId]
+        );
+
+        // Delete the main test
+        await executeQuery(
+            `DELETE FROM trftestforstability WHERE id = ?`,
+            [testId]
+        );
+
+        res.status(200).json({ message: 'Test and subtests deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting test and subtests:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+// Update Test with Subtests
+const updateTestWithSubtests = async (req, res) => {
+    const { testId } = req.params;
+    const { testDetails, subtests } = req.body;
+
+    try {
+        // Destructure test details from the request
+        const {
+            test,
+            claim,
+            spes,
+            results,
+            file,
+            updateby,
+            resultupdateon,
+            reqby,
+            unit,
+            upby,
+            updateon,
+            inirupby,
+            inirupdateon
+        } = testDetails;
+
+        // Update the main test
+        await executeQuery(
+            `UPDATE trftestforstability 
+             SET test = ?, claim = ?, spes = ?, results = ?, file = ?, updateby = ?, resultupdateon = ?, reqby = ?, unit = ?, upby = ?, updateon = ?, inirupby = ?, inirupdateon = ?
+             WHERE id = ?`,
+            [
+                test, claim, spes, results, file, updateby, resultupdateon, reqby, unit, upby, updateon, inirupby, inirupdateon, testId
+            ]
+        );
+
+        // Delete existing subtests
+        await executeQuery(
+            `DELETE FROM trf_sub_testforstability WHERE testid = ?`,
+            [testId]
+        );
+
+        // Insert new subtests
+        if (subtests && subtests.length > 0) {
+            const placeholders = subtests
+                .map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)') // One set of ? for each subtest
+                .join(', ');
+
+            const subtestValues = subtests.flatMap(subtest => [
+                testDetails.pid, // `trfid` (same as `pid`)
+                testId,          // `testid` (foreign key to test table)
+                subtest.test,
+                subtest.claim,
+                subtest.spes,
+                subtest.results,
+                subtest.file,
+                subtest.updateby,
+                subtest.resultupdateon,
+                subtest.reqby,
+                subtest.unit,
+                subtest.samplestage,
+                subtest.upby,
+                subtest.updateon
+            ]);
+
+            await executeQuery(
+                `INSERT INTO trf_sub_testforstability 
+                 (trfid, testid, test, claim, spes, results, file, updateby, resultupdateon, reqby, unit, samplestage, upby, updateon) 
+                 VALUES ${placeholders}`,
+                subtestValues
+            );
+        }
+
+        res.status(200).json({ message: 'Test and subtests updated successfully' });
+    } catch (error) {
+        console.error('Error updating test and subtests:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
 // GET batch details by product ID
 const getBatchDetailsByProductId = async (req, res) => {
     const { id } = req.params;
 
     try {
         const results = await executeQuery('SELECT * FROM stability_batch_details WHERE pid = ?', [id]);
+
+        if (results.length === 0) {
+            return res.status(200).json({ message: 'No batch details found for the given product ID.' });
+        }
+
         res.json(results);
     } catch (error) {
         console.error(`Error fetching batch details for product ID ${id}:`, error.message);
@@ -195,21 +527,32 @@ const getStorageConditionsByProductId = async (req, res) => {
 
     try {
         const results = await executeQuery('SELECT * FROM stability_batch_condition_details WHERE pid = ?', [id]);
+
+        if (results.length === 0) {
+            return res.status(200).json({ message: 'No storage conditions found for the given product ID.' });
+        }
+
         res.json(results);
     } catch (error) {
         console.error(`Error fetching storage conditions for product ID ${id}:`, error.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-
 module.exports = {
     getAllStabilityProducts,
     getStabilityProductById,
     addStabilityProduct,
+    updateTestWithSubtests,
+    deleteTestWithSubtests,
     updateStabilityProduct,
     deleteStabilityProduct,
     getProtocolsByProductId,
+    addProtocolWithFile,
+    updateProtocol ,
+    deleteProtocol,
     getTestDetailsByProductId,
+    addTest,
+    addSubtests,
     getBatchDetailsByProductId,
     getStorageConditionsByProductId
 };
