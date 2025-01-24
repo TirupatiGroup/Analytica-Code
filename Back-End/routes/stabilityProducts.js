@@ -24,8 +24,7 @@ router.get('/products/:id', stabilityController.getStabilityProductById);
 // GET protocols by product IDs
 router.get('/protocols/:id', stabilityController.getProtocolsByProductId);
 router.post('/protocols', upload.single('file'), stabilityController.addProtocolWithFile); // POST a protocol with file upload
-// PUT: Update an existing protocol
-router.put('/protocols/:id', stabilityController.updateProtocol);
+
 
 // DELETE: Delete a protocol by ID
 router.delete('/protocols/:id', stabilityController.deleteProtocol);
@@ -45,25 +44,11 @@ router.put('/tests/:testId', stabilityController.updateTestWithSubtests);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // GET batch details by product ID
 router.get('/batch-details/:id', stabilityController.getBatchDetailsByProductId);
+router.post('/batch-details', stabilityController.addBatchDetails);
+router.put('/batch-details/:id', stabilityController.updateBatchDetailsById);
+router.delete('/batch-details/:id', stabilityController.deleteBatchDetailsById);
 
 // GET storage conditions by product ID
 router.get('/storage-conditions/:id', stabilityController.getStorageConditionsByProductId);

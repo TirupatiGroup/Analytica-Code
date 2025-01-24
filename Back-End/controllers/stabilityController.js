@@ -200,39 +200,6 @@ const addProtocolWithFile = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
-// PUT protocols (Update Protocol)
-const updateProtocol = async (req, res) => {
-    try {
-        const { pname, protocol, vertical, updateby, pid } = req.body;
-        const protocolId = req.params.id;  // Get protocol ID from URL params
-        const file = req.file?.filename;  // Extract uploaded file (if any)
-
-        if (!pname || !protocol || !vertical || !updateby || !pid) {
-            return res.status(400).json({ error: 'All fields are required' });
-        }
-
-        // Update query: Only update the fields that are passed in the request
-        const updateFields = [pname, protocol, vertical, updateby, pid];
-        let query = `UPDATE upload_protocols SET pname = ?, protocol = ?, vertical = ?, updateby = ?, pid = ?`;
-        if (file) {
-            query += `, file = ?`;  // Add file to update query if it exists
-            updateFields.push(file);
-        }
-        query += ` WHERE id = ?`;  // Add condition to update the specific protocol
-        updateFields.push(protocolId);
-
-        const result = await executeQuery(query, updateFields);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Protocol not found' });
-        }
-
-        res.status(200).json({ message: 'Protocol updated successfully' });
-    } catch (error) {
-        console.error('Error updating protocol:', error.message);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-};
 // DELETE protocols (Delete Protocol)
 const deleteProtocol = async (req, res) => {
     const { id } = req.params; // Protocol ID from the request URL
@@ -272,6 +239,8 @@ const deleteProtocol = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+{/* For Add More Product Test Details */}
 // GET test details by product ID, including subtests
 const getTestDetailsByProductId = async (req, res) => {
     const { id } = req.params;
@@ -402,8 +371,6 @@ const addSubtests = async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 };
-
-
 //Delete Test with Subtests
 const deleteTestWithSubtests = async (req, res) => {
     const { testId } = req.params;
@@ -503,6 +470,9 @@ const updateTestWithSubtests = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+
+{/* For Add Product Batch Details */}
 // GET batch details by product ID
 const getBatchDetailsByProductId = async (req, res) => {
     const { id } = req.params;
@@ -520,6 +490,129 @@ const getBatchDetailsByProductId = async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+// POST batch details by product ID
+const addBatchDetails = async (req, res) => {
+    const {
+        pid,
+        vertical,
+        pname,
+        protocol,
+        ppacking,
+        psize,
+        spacking,
+        batchno,
+        mfgdate,
+        batchsize,
+        expdate,
+        reqby,
+        chrdate,
+    } = req.body;
+
+    // Validate required fields
+    if (!pid || !batchno || !mfgdate || !batchsize || !reqby || !chrdate) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO stability_batch_details 
+            (pid, vertical, pname, protocol, ppacking, psize, spacking, batchno, mfgdate, batchsize, expdate, reqby, chrdate)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        const values = [
+            pid || null,
+            vertical || null,
+            pname || null,
+            protocol || null,
+            ppacking || null,
+            psize || null,
+            spacking || null,
+            batchno,
+            mfgdate,
+            batchsize,
+            expdate || null,
+            reqby,
+            chrdate,
+        ];
+
+        await executeQuery(query, values);
+        res.status(201).json({ message: 'Batch details added successfully.' });
+    } catch (error) {
+        console.error('Error adding batch details:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+const updateBatchDetailsById = async (req, res) => {
+    const { id } = req.params; // The batch id from the URL
+    const {
+        pid,        // Product ID to ensure we are updating for the correct product
+        vertical,
+        pname,
+        protocol,
+        ppacking,
+        psize,
+        spacking,
+        batchno,
+        mfgdate,
+        batchsize,
+        expdate,
+        reqby,
+        chrdate,
+    } = req.body;
+
+    try {
+        const query = `
+            UPDATE stability_batch_details
+            SET 
+                pid = ?, 
+                vertical = ?, 
+                pname = ?, 
+                protocol = ?, 
+                ppacking = ?, 
+                psize = ?, 
+                spacking = ?, 
+                batchno = ?, 
+                mfgdate = ?, 
+                batchsize = ?, 
+                expdate = ?, 
+                reqby = ?, 
+                chrdate = ?
+            WHERE id = ? AND pid = ?`; // Added pid check to ensure the correct batch is updated
+
+        const values = [pid, vertical, pname, protocol, ppacking, psize, spacking, batchno, mfgdate, batchsize, expdate, reqby, chrdate, id, pid];
+
+        const result = await executeQuery(query, values);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Batch details not found for the given product ID.' });
+        }
+
+        res.status(200).json({ message: 'Batch details updated successfully.' });
+    } catch (error) {
+        console.error('Error updating batch details:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+const deleteBatchDetailsById = async (req, res) => {
+    const { id } = req.params;  // Only using batch ID from URL
+
+    try {
+        const query = `DELETE FROM stability_batch_details WHERE id = ?`;  // Deleting by id only
+
+        const result = await executeQuery(query, [id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: 'Batch details not found for the given ID.' });
+        }
+
+        res.status(200).json({ message: 'Batch details deleted successfully.' });
+    } catch (error) {
+        console.error('Error deleting batch details:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 
 // GET storage conditions by product ID
 const getStorageConditionsByProductId = async (req, res) => {
@@ -548,11 +641,13 @@ module.exports = {
     deleteStabilityProduct,
     getProtocolsByProductId,
     addProtocolWithFile,
-    updateProtocol ,
     deleteProtocol,
     getTestDetailsByProductId,
     addTest,
     addSubtests,
     getBatchDetailsByProductId,
+    addBatchDetails,
+    updateBatchDetailsById,
+    deleteBatchDetailsById,
     getStorageConditionsByProductId
 };

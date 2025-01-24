@@ -6,6 +6,8 @@ import Sidebar from '../../components/HSidebar';
 import AddTestForm from './ViewPage/TestComponents/AddTest';
 import AddSubtestModal from './ViewPage/TestComponents/AddSubtestModal';
 import ProtocolList from './ViewPage/ProtocolComponents/ProtocolList';
+import BatchDetailsList from './ViewPage/BatchComponents/BatchDetailsList';
+import BatchConditionForm from './ViewPage/BatchComponents/BatchConditionComponents/BatchConditionForm';
 const ViewProduct = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
@@ -195,13 +197,13 @@ const ViewProduct = () => {
           {/* Tab Content */}
           <div className="bg-white p-6 rounded-lg shadow-lg">
             {activeTab === 'Protocols' && (
-             <ProtocolList
-             protocols={protocols}
-             selectedFile={selectedFile}
-             isLoading={isLoading}
-             handleFileClick={handleFileClick}
-             closeModal={closeModal}
-         />
+              <ProtocolList
+                protocols={protocols}
+                selectedFile={selectedFile}
+                isLoading={isLoading}
+                handleFileClick={handleFileClick}
+                closeModal={closeModal}
+              />
             )}
 
             {activeTab === 'testDetails' && (
@@ -220,43 +222,43 @@ const ViewProduct = () => {
                     </thead>
                     <tbody>
                       {testDetails.map((test, testIndex) => (
-                    <React.Fragment key={test.id}>
-                    <tr>
-                      <td className="border border-gray-300 px-4 py-2 font-bold">
-                        {testIndex + 1}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">{test.test}</td>
-                      <td className="border border-gray-300 px-4 py-2">{test.claim}</td>
-                      <td className="border border-gray-300 px-4 py-2">{test.spes}</td>
-                      <td className="border border-gray-300 px-4 py-2 flex">
-                        <FaPlus
-                          className="text-green-500 cursor-pointer"
-                          onClick={() => openSubtestModal(test.id)}
-                        />
-                        <FaEdit
-                          className="text-blue-500 cursor-pointer ml-2"
-                          onClick={() => openEditModal(test)}
-                        />
-                        <FaTrash
-                          className="text-red-500 cursor-pointer ml-2"
-                          onClick={() => handleDeleteTest(test.id)}
-                        />
-                      </td>
-                    </tr>
-                  
-                    {/* Render subtests only if it's an array */}
-                    {Array.isArray(test.subtests) && test.subtests.length > 0 && test.subtests.map((subtest, subtestIndex) => (
-                      <tr key={subtest.id || `${test.id}-${subtestIndex}`} className="bg-gray-50">
-                        <td className="border border-gray-300 px-4 py-2 pl-8">
-                          {testIndex + 1}.{subtestIndex + 1}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2">{subtest.test}</td>
-                        <td className="border border-gray-300 px-4 py-2">{subtest.claim}</td>
-                        <td className="border border-gray-300 px-4 py-2">{subtest.spes}</td>
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                  
+                        <React.Fragment key={test.id}>
+                          <tr>
+                            <td className="border border-gray-300 px-4 py-2 font-bold">
+                              {testIndex + 1}
+                            </td>
+                            <td className="border border-gray-300 px-4 py-2">{test.test}</td>
+                            <td className="border border-gray-300 px-4 py-2">{test.claim}</td>
+                            <td className="border border-gray-300 px-4 py-2">{test.spes}</td>
+                            <td className="border border-gray-300 px-4 py-2 flex">
+                              <FaPlus
+                                className="text-green-500 cursor-pointer"
+                                onClick={() => openSubtestModal(test.id)}
+                              />
+                              <FaEdit
+                                className="text-blue-500 cursor-pointer ml-2"
+                                onClick={() => openEditModal(test)}
+                              />
+                              <FaTrash
+                                className="text-red-500 cursor-pointer ml-2"
+                                onClick={() => handleDeleteTest(test.id)}
+                              />
+                            </td>
+                          </tr>
+
+                          {/* Render subtests only if it's an array */}
+                          {Array.isArray(test.subtests) && test.subtests.length > 0 && test.subtests.map((subtest, subtestIndex) => (
+                            <tr key={subtest.id || `${test.id}-${subtestIndex}`} className="bg-gray-50">
+                              <td className="border border-gray-300 px-4 py-2 pl-8">
+                                {testIndex + 1}.{subtestIndex + 1}
+                              </td>
+                              <td className="border border-gray-300 px-4 py-2">{subtest.test}</td>
+                              <td className="border border-gray-300 px-4 py-2">{subtest.claim}</td>
+                              <td className="border border-gray-300 px-4 py-2">{subtest.spes}</td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+
 
                       ))}
                     </tbody>
@@ -279,36 +281,7 @@ const ViewProduct = () => {
             {activeTab === 'batchDetails' && (
               <div>
                 <h2 className="text-2xl font-semibold mb-4">Batch Details</h2>
-                {batchDetails.length > 0 ? (
-                  <table className="table-auto w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="border border-gray-300 px-2 py-2">Sr. No.</th>
-                        <th className="border border-gray-300 px-2 py-2">Batch Number</th>
-                        <th className="border border-gray-300 px-2 py-2">Manufacturing Date</th>
-                        <th className="border border-gray-300 px-2 py-2">Batch Size</th>
-                        <th className="border border-gray-300 px-2 py-2">Charging Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {batchDetails.map((batch, index) => (
-                        <tr key={batch.id} className="text-center">
-                          <td className="border border-gray-300 px-2 py-2">{index + 1}</td>
-                          <td className="border border-gray-300 px-2 py-2">{batch.batchno}</td>
-                          <td className="border border-gray-300 px-2 py-2">
-                            {new Date(batch.mfgdate).toLocaleDateString('en-GB')}
-                          </td>
-                          <td className="border border-gray-300 px-2 py-2">{batch.batchsize}</td>
-                          <td className="border border-gray-300 px-2 py-2">
-                            {new Date(batch.chrdate).toLocaleDateString('en-GB')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                ) : (
-                  <p>No batch details available.</p>
-                )}
+                <BatchDetailsList productId={id} />
               </div>
             )}
 
@@ -359,6 +332,7 @@ const ViewProduct = () => {
                         ))}
                       </tbody>
                     </table>
+                    <BatchConditionForm/>
                   </div>
                 ) : (
                   <p>No storage conditions available.</p>
