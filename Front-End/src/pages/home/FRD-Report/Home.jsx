@@ -1,111 +1,198 @@
-// MainComponent.js (or your main file)
-import React, { useState } from 'react';
-import Sidebar from '../../../components/HSidebar';
-import MonthYearSelector from '../../../components/MonthYearSelector'; // Adjust the path as needed
-import ScrollableTable from '../../../components/ScrollableTable'; // Adjust the path as needed
+import React, { useState, useEffect } from "react";
+import api from "../../../api/axios"; // Ensure your axios instance is set up correctly
+import RepoDetails from "../../../components/ReportDetailsModal"; // Import the RepoDetails modal
+
+// Helper function to generate dates for the calendar grid
+const generateDatesInMonth = (month, year) => {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const dates = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    return `${year}-${(month + 1).toString().padStart(2, "0")}-${day
+      .toString()
+      .padStart(2, "0")}`;
+  });
+  return dates;
+};
 
 const FrdHome = () => {
-  const today = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
-  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth()); // 0-based
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [datesInMonth, setDatesInMonth] = useState([]);
+  const [reports, setReports] = useState({}); // Store reports for each user and date
+  const [selectedReport, setSelectedReport] = useState(null); // To store the selected report details
+
+  useEffect(() => {
+    // Fetch users based on department (default to 'ard')
+    const fetchUsers = async () => {
+      try {
+        const response = await api.get("/reportusersfrd", {
+          params: { depart: "frd" },
+        });
+        setUsers(response.data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    // Generate dates for the current month
+    const dates = generateDatesInMonth(currentMonth, currentYear);
+    setDatesInMonth(dates);
+  }, [currentMonth, currentYear]);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await api.get("/frddepartment/reports", {
+          params: { month: currentMonth + 1, year: currentYear },
+        });
+        const allReports = response.data.reduce((acc, report) => {
+          const reportDate = new Date(report.report_date).toISOString().split('T')[0]; // YYYY-MM-DD
+          if (!acc[report.user_id]) {
+            acc[report.user_id] = {};
+          }
+          acc[report.user_id][reportDate] = report.report_details;
+          return acc;
+        }, {});
+        setReports(allReports);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
+    if (users.length > 0 && datesInMonth.length > 0) {
+      fetchReports();
+    }
+  }, [users, datesInMonth, currentMonth, currentYear]);
 
   const handleMonthChange = (event) => {
-    setSelectedMonth(Number(event.target.value));
+    setCurrentMonth(parseInt(event.target.value, 10));
   };
 
   const handleYearChange = (event) => {
-    setSelectedYear(Number(event.target.value));
+    setCurrentYear(parseInt(event.target.value, 10));
   };
 
-  // Get the start and end date of the current month based on selected year and month
-  const { startDate, endDate } = getCurrentMonthRange(selectedYear, selectedMonth);
+  const handleReportClick = (userId, date) => {
+    const userReports = reports[userId];
+    if (userReports && userReports[date]) {
+      const reportDetails = userReports[date];
+      const user = users.find((user) => user.id === userId);
+      const reportDate = date;
+      setSelectedReport({ reportDetails, username: user.username, ename: user.ename, reportDate });
+    }
+  };
 
-  // Get the date headers (e.g., the days of the month)
-  const headers = getDateHeaders(startDate, endDate);
-
-  // Generate some dummy data for illustration (this would be replaced by real data)
-  const data = generateDataForMonth(startDate, endDate);
+  const closeModal = () => {
+    setSelectedReport(null);
+  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading data...</p>
+      </div>
+    );
+  }
+  if (error) return <p>Error: {error}</p>;
+  if (users.length === 0) return <p>No users found in ARD department.</p>;
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="w-[80%] p-4 bg-gray-50 rounded-lg shadow-md flex-1 h-screen overflow-x-auto">
-        <div className="overflow-x-auto max-h-screen overflow-y-auto">
-          <table className="min-w-full border border-gray-300 table-auto text-xs">
-            <thead className="bg-gray-200">
-              <tr>
-                {/* Sticky Header for "Emp Name" and "Section" columns */}
-                <th className="sticky left-0 top-0 bg-gray-200 border border-gray-300 p-2 z-30">Emp Name</th>
-                <th className="sticky left-[3rem] top-0 bg-gray-200 border border-gray-300 p-2 z-30">Section</th>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4 text-center">FRD Daily Reports Tracker</h1>
 
-                {/* Render the date headers */}
-                {headers.map((header, idx) => (
-                  <th key={idx} className="sticky top-0 bg-gray-200 border border-gray-300 p-2 z-10">
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Render the rows */}
-              {data.map((item, index) => (
-                <tr key={index}>
-                  {/* Sticky columns for Emp Name and Section */}
-                  <td className="sticky left-0 bg-white border border-gray-300 p-2">{item.empName}</td>
-                  <td className="sticky left-[3rem] bg-white border border-gray-300 p-2">{item.section}</td>
+      <div className="flex space-x-4 mb-6">
+        <div>
+          <label htmlFor="month" className="block">
+            Select Month:
+          </label>
+          <select
+            id="month"
+            value={currentMonth}
+            onChange={handleMonthChange}
+            className="p-2 border border-gray-300"
+          >
+            {Array.from({ length: 12 }).map((_, index) => (
+              <option key={index} value={index}>
+                {new Date(2021, index).toLocaleString("default", { month: "long" })}
+              </option>
+            ))}
+          </select>
+        </div>
 
-                  {/* Render the daily data columns */}
-                  {headers.map((header, idx) => (
-                    <td key={idx} className="border border-gray-300 p-2">
-                      {item[header] || 'No Data'}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div>
+          <label htmlFor="year" className="block">
+            Select Year:
+          </label>
+          <input
+            type="number"
+            id="year"
+            value={currentYear}
+            onChange={handleYearChange}
+            className="p-2 border border-gray-300"
+          />
         </div>
       </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full table-auto border-collapse border border-gray-300">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 border border-gray-300 text-left sticky left-0 bg-white z-10">Username</th>
+              <th className="px-4 py-2 border border-gray-300 text-center whitespace-nowrap sticky left-0 bg-white z-30">Employee Name</th>
+              {datesInMonth.map((date) => (
+                <th
+                  key={date}
+                  className="px-4 py-2 border border-gray-300 text-center text-xs whitespace-nowrap sticky top-0 bg-white z-20"
+                >
+                  {date}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td className="px-4 py-2 border border-gray-300 whitespace-nowrap sticky left-0 bg-white z-10">{user.username}</td>
+                <td className="px-4 py-2 border border-gray-300 whitespace-nowrap sticky left-0 bg-white z-10">{user.ename}</td>
+                {datesInMonth.map((date) => (
+                  <td
+                    key={date}
+                    className="px-4 py-2 border border-gray-300 text-center text-xs text-white"
+                    onClick={() => handleReportClick(user.id, date)}
+                    style={{
+                      cursor: "pointer",
+                      backgroundColor:
+                        reports[user.id] && reports[user.id][date] ? "#22C55E" : "#f9f9f9",
+                    }}
+                  >
+                    {reports[user.id] && reports[user.id][date] ? "Reported" : " "}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+
+      <RepoDetails
+        reportDetails={selectedReport?.reportDetails}
+        username={selectedReport?.username}
+        ename={selectedReport?.ename}
+        reportDate={selectedReport?.reportDate}
+        onClose={closeModal}
+      />
     </div>
   );
-};
-
-// Helper function to get the range of dates for the selected month
-const getCurrentMonthRange = (year, month) => {
-  const startDate = new Date(year, month, 1);
-  const endDate = new Date(year, month + 1, 0); // Last day of the month
-  return { startDate, endDate };
-};
-
-// Helper function to generate headers for the table (the days of the month)
-const getDateHeaders = (startDate, endDate) => {
-  const headers = [];
-  let currentDate = new Date(startDate);
-
-  while (currentDate <= endDate) {
-    headers.push(currentDate.toLocaleDateString('en-GB')); // Format as dd/mm/yyyy
-    currentDate.setDate(currentDate.getDate() + 1); // Move to the next day
-  }
-
-  return headers;
-};
-
-// Example function to generate data for each day (replace this with real data fetching logic)
-const generateDataForMonth = (startDate, endDate) => {
-  const data = [];
-  let currentDate = new Date(startDate);
-
-  while (currentDate <= endDate) {
-    const dateStr = currentDate.toLocaleDateString('en-GB'); // Format as dd/mm/yyyy
-    data.push({
-      empName: 'John Doe', // Example employee name
-      section: 'Development', // Example section
-      [dateStr]: `Work for ${dateStr}`, // Example daily data for each date
-    });
-    currentDate.setDate(currentDate.getDate() + 1); // Move to the next day
-  }
-
-  return data;
 };
 
 export default FrdHome;

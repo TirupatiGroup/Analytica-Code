@@ -116,15 +116,15 @@ const ProfileDetails = () => {
                         </div>
                     </div>
                 </div>
-
-                <div className="mt-8 flex justify-end">
+{/*<div className="mt-8 flex justify-end">
                     <button
                         onClick={() => navigate('/edit-profile')}
                         className="bg-blue-500 text-white px-8 py-3 rounded-lg shadow hover:bg-blue-600 transition duration-300"
                     >
                         Edit Profile
                     </button>
-                </div>
+                </div> */}
+                
             </div>
 
             <ToastContainer />

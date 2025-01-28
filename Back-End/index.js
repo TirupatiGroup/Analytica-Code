@@ -7,12 +7,14 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
-const { Pool } = require('pg');
 const stabilityProductsRoutes = require('./routes/stabilityProducts');
 const employeesRoutes = require('./routes/employeesRoutes');
 const productRoutes = require('./routes/productRoutes');
 const prefixRoutes = require('./routes/prefixRoutes'); // Import the prefix routes
 const categoryRoutes = require('./routes/categoryRoutes');
+const reportTracker = require('./routes/reportTrackerRoutes')
+const dailyReoprtingRoutes = require('./routes/dailyReoprtingRoutes');
+const QtrdailyReoprtingRoutes = require('./routes/qtrreportRoutes')
 // const mockdate = require('mockdate');
 // mockdate.set('2024-12-31');
 
@@ -141,6 +143,7 @@ app.post('/register', upload.single('profile_pic'), async (req, res) => {
         res.status(500).send('Error processing registration');
     }
 });
+
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
@@ -179,18 +182,26 @@ app.post('/login', (req, res) => {
         });
     });
 });
+
 // All Employee routes
 app.use('/employees', employeesRoutes);
 // Stability  routes 
 app.use('/api/stability', stabilityProductsRoutes); 
-
 // Products routes
 app.use('/', productRoutes);
 // for prefix routes
 app.use('/', prefixRoutes);
-
-
+// BRM Routes
 app.use('/', categoryRoutes);
+
+{/* Reporting System Routes */}
+
+// Daily reporting Routes
+app.use('/', dailyReoprtingRoutes);
+// Qtr Reporting Routes
+app.use('/', QtrdailyReoprtingRoutes)
+// For all department Reporting Tracking
+app.use('/', reportTracker)
 
 
 
@@ -348,7 +359,6 @@ app.post('/trfs/:vertical/test-request-form', (req, res) => {
         });
     });
 });
-
 app.get('/trfs/:vertical/:arn/:field', (req, res) => {
     const vertical = req.params.vertical;
     const arn = req.params.arn;
@@ -1122,391 +1132,6 @@ app.delete('/trfs/:vertical/:trfid/subtests/:sub_testid', (req, res) => {
         }
 
         res.status(200).json({ message: 'Sub-test deleted successfully' });
-    });
-});
-
-
-/* Reporting System API's */
-// for user drop down code 
-app.get('/api/pass-users', (req, res) => {
-    // Query all users from the users table
-    const query = 'SELECT id, username, ename FROM users';
-
-    db.execute(query, (err, results) => {
-        if (err) {
-            console.error('Error fetching users:', err);
-            return res.status(500).json({ error: 'Failed to fetch users' });
-        }
-
-        // Send response with all users
-        res.json(results);
-    });
-});
-// Post Daily Reporting data 
-app.post('/reports', (req, res) => {
-    const { user_id, report_date, report_details } = req.body;
-
-    // Check if report_details is undefined or empty
-    if (!report_details || report_details.trim() === "") {
-        return res.status(400).send('Report details cannot be empty');
-    }
-
-    console.log('Received data:', { user_id, report_date, report_details });
-
-    // First, check if a report for the same user and date already exists
-    const checkReportQuery = 'SELECT * FROM reports WHERE user_id = ? AND report_date = ?';
-
-    db.query(checkReportQuery, [user_id, report_date], (err, result) => {
-        if (err) {
-            console.error("Error checking existing report:", err);
-            return res.status(500).send('Error checking report');
-        }
-
-        if (result.length > 0) {
-            // If a report already exists, append the new details to the existing report
-            const existingReportDetails = result[0].report_details;
-            const updatedReportDetails = existingReportDetails + '\n' + report_details;
-
-            // Update the existing report with the appended details
-            const updateReportQuery = 'UPDATE reports SET report_details = ? WHERE id = ?';
-
-            db.query(updateReportQuery, [updatedReportDetails, result[0].id], (err, result) => {
-                if (err) {
-                    console.error("Error updating report:", err);
-                    return res.status(500).send('Error updating report');
-                }
-                res.status(200).send('Report details updated successfully');
-            });
-        } else {
-            // If no report exists, create a new one
-            const createReportQuery = 'INSERT INTO reports (user_id, report_date, report_details) VALUES (?, ?, ?)';
-
-            db.query(createReportQuery, [user_id, report_date, report_details], (err, result) => {
-                if (err) {
-                    console.error("Error creating report:", err);
-                    return res.status(500).send('Error creating report');
-                }
-                res.status(200).send('Report created successfully');
-            });
-        }
-    });
-});
-// Fetch Daily Reporting data
-app.get('/reports/:date', (req, res) => {
-    const { date } = req.params;
-
-    // Query to fetch reports and corresponding user details
-    const query = `
-      SELECT 
-        reports.id AS report_id, 
-        reports.report_date, 
-        reports.report_details, 
-        users.username, 
-        users.ename, 
-        users.des, 
-        users.depart
-      FROM reports
-      JOIN users ON reports.user_id = users.id
-      WHERE reports.report_date = ?
-    `;
-
-    db.query(query, [date], (err, results) => {
-        if (err) {
-            console.error("Error fetching reports:", err);
-            return res.status(500).send('Error fetching reports');
-        }
-
-        if (results.length === 0) {
-            return res.status(404).send('No reports found for the selected date');
-        }
-
-        // Send back the result as a JSON response
-        res.status(200).json(results);
-    });
-});
-// Update Daily Reporting data
-app.put('/reports/:id', (req, res) => {
-    const { id } = req.params;  // Get the report ID from the URL parameter
-    const { report_details } = req.body;  // Extract report_details from the request body
-
-    // Check if report_details is undefined or empty
-    if (!report_details || report_details.trim() === "") {
-        return res.status(400).send('Report details cannot be empty');
-    }
-
-    const updateReportQuery = 'UPDATE reports SET report_details = ? WHERE id = ?';
-
-    db.query(updateReportQuery, [report_details, id], (err, result) => {
-        if (err) {
-            console.error("Error updating report:", err);
-            return res.status(500).send('Error updating report');
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).send('No report found with the provided ID');
-        }
-
-        res.status(200).send('Report details updated successfully');
-    });
-});
-// Delete Daily Reporting data
-app.delete('/reports/:id', (req, res) => {
-    const { id } = req.params;
-
-    // First, check if the report with the given ID exists
-    const checkReportQuery = 'SELECT * FROM reports WHERE id = ?';
-
-    db.query(checkReportQuery, [id], (err, result) => {
-        if (err) {
-            console.error('Error checking report:', err);
-            return res.status(500).send('Error checking report');
-        }
-
-        if (result.length === 0) {
-            // If the report is not found, return a 404 response
-            return res.status(404).send('Report not found');
-        }
-
-        // Proceed with deleting the report if it exists
-        const deleteQuery = 'DELETE FROM reports WHERE id = ?';
-
-        db.query(deleteQuery, [id], (err, result) => {
-            if (err) {
-                console.error('Error deleting report:', err);
-                return res.status(500).send('Error deleting report');
-            }
-
-            // Successfully deleted the report
-            res.status(200).send({ message: 'Report deleted successfully' });
-        });
-    });
-});
-// Fetch reported dates for a specific user
-app.get('/reports/user/:userId', (req, res) => {
-    const { userId } = req.params;
-
-    // MySQL query to get report dates for the given userId
-    const query = 'SELECT report_date FROM reports WHERE user_id = ?';
-
-    db.query(query, [userId], (err, results) => {
-        if (err) {
-            console.error('Error fetching reports:', err);
-            return res.status(500).json({ message: 'Server error' });
-        }
-
-        // Map the results to return only the date in 'en-GB' format
-        const reportedDates = results.map((row) =>
-            new Date(row.report_date).toLocaleDateString('en-GB')
-        );
-
-        return res.status(200).json(reportedDates);
-    });
-});
-// API endpoint to update the report details
-app.put('/update-report', (req, res) => {
-    console.log('Request body:', req.body); // Log the request body for debugging
-    const { id, report_date, report_details } = req.body;
-
-    // Validation for required fields
-    if (!id || !report_date || !report_details) {
-        return res.status(400).json({ error: 'Missing required fields (id, report_date, report_details)' });
-    }
-
-    // Ensure report_date is in the correct format (YYYY-MM-DD) for SQL query consistency
-    const formattedReportDate = new Date(report_date);
-    if (isNaN(formattedReportDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid report_date format, should be YYYY-MM-DD' });
-    }
-
-    // SQL Query to update only the report_details (NOT the report_date)
-    const query = `
-      UPDATE reports 
-      SET report_details = ? 
-      WHERE id = ? AND report_date = ?
-    `;
-    const values = [report_details, id, report_date];
-
-    db.query(query, values, (err, result) => {
-        if (err) {
-            console.error('Error updating report:', err);
-            return res.status(500).json({ message: 'Error updating report', error: err.message });
-        }
-
-        if (result.affectedRows > 0) {
-            return res.status(200).json({ message: 'Report updated successfully' });
-        } else {
-            return res.status(404).json({ message: 'Report not found for the given ID and date' });
-        }
-    });
-});
-// API endpoint to delete a report 
-// Express route to search products based on pname
-app.get('/search-prefix-columns', (req, res) => {
-    const { pname, prepix } = req.query;
-
-    // Build dynamic SQL query based on query parameters
-    let query = `SELECT * FROM products_for_reporting WHERE 1=1`;
-    const queryParams = [];
-
-    // Add conditions based on provided parameters
-    if (pname) {
-        query += ` AND pname LIKE ?`;
-        queryParams.push(`%${pname}%`);
-    }
-    if (prepix) {
-        query += ` AND prepix LIKE ?`;
-        queryParams.push(`%${prepix}%`);
-    }
-    // Execute the query
-    db.query(query, queryParams, (err, results) => {
-        if (err) {
-            console.error('Error searching product prefix:', err.message);
-            return res.status(500).json({ error: 'Internal server error while searching product prefix.' });
-        }
-
-        // Return results in JSON format
-        res.json(results);
-    });
-});
-// post qtr report 
-app.post('/qtr-report', (req, res) => {
-    const { username, date, one_prefix_column, two_prefix_column, three_prefix_column, four_prefix_column, onLeave } = req.body;
-
-    // Ensure all required fields are provided
-    if (!username || !date || !one_prefix_column || !two_prefix_column || !three_prefix_column || !four_prefix_column) {
-        return res.status(400).json({ error: 'All fields are required' });
-    }
-
-    // Check for duplicate entry
-    const duplicateCheckQuery = `SELECT COUNT(*) AS count FROM qtr_report WHERE username = ? AND date = ?`;
-    db.execute(duplicateCheckQuery, [username, date], (err, results) => {
-        if (err) {
-            console.error('Error checking duplicate report:', err);
-            return res.status(500).json({ error: 'An error occurred while checking duplicate report' });
-        }
-
-        if (results[0].count > 0) {
-            return res.status(400).json({ error: 'You have already reported on this date for this user.' });
-        }
-
-        // Insert the new report
-        const query = `INSERT INTO qtr_report (username, date, one_prefix_column, two_prefix_column, three_prefix_column, four_prefix_column, onLeave) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        const values = [
-            username,
-            date,
-            onLeave ? 'On leave' : one_prefix_column,
-            onLeave ? 'On leave' : two_prefix_column,
-            onLeave ? 'On leave' : three_prefix_column,
-            onLeave ? 'On leave' : four_prefix_column,
-            onLeave,
-        ];
-
-        db.execute(query, values, (insertErr) => {
-            if (insertErr) {
-                console.error('Error saving report:', insertErr);
-                return res.status(500).json({ error: 'Failed to save report' });
-            }
-
-            res.json({ message: 'Report submitted successfully' });
-        });
-    });
-});
-
-app.get('/qtr_report/user/:username', (req, res) => {
-    const username = req.params.username; // Corrected to use `username` from the URL params
-
-    // Query to get reported dates for the user using the username
-    const query = `SELECT date FROM qtr_report WHERE username = ?`;
-
-    db.query(query, [username], (err, results) => {
-        if (err) {
-            console.error('Error fetching reported dates:', err);
-            return res.status(500).json({ message: 'Error fetching reported dates' });
-        }
-
-        // Extract dates from results and send back as an array of formatted strings (en-GB)
-        const reportedDates = results.map(row => row.date.toLocaleDateString('en-GB'));
-
-        res.json(reportedDates);
-    });
-});
-
-app.get('/reports/:depart/:date?', (req, res) => {
-    const { depart, date } = req.params;
-    const currentDate = new Date();
-    const currentMonth = currentDate.getMonth() + 1;  // Months are 0-indexed
-    const currentYear = currentDate.getFullYear();
-
-    // If no date is provided, show current month's reports by default
-    const targetDate = date ? date : `${currentYear}-${currentMonth < 10 ? '0' + currentMonth : currentMonth}`;
-
-    // Query to fetch reports for a specific department and month
-    const query = `
-      SELECT 
-        reports.id AS report_id, 
-        reports.report_date, 
-        reports.report_details, 
-        users.username, 
-        users.ename, 
-        users.vertical, 
-        users.depart
-      FROM reports
-      JOIN users ON reports.user_id = users.id
-      WHERE reports.report_date LIKE ? AND users.depart = ?
-      ORDER BY users.username, reports.report_date
-    `;
-
-    // Modify the date format to match (e.g., '2024-12%')
-    const datePattern = `${targetDate}%`;
-
-    db.query(query, [datePattern, depart], (err, results) => {
-        if (err) {
-            console.error("Error fetching reports:", err);
-            return res.status(500).send('Error fetching reports');
-        }
-
-        if (results.length === 0) {
-            return res.status(404).send(`No reports found for the selected department: ${depart} and month: ${targetDate}`);
-        }
-
-        // Grouping results by user (username or ename)
-        const groupedResults = {};
-
-        results.forEach((row) => {
-            const userKey = row.username;  // Use username as the key to group by user
-
-            if (!groupedResults[userKey]) {
-                // If the user doesn't exist in the grouped results, add them
-                groupedResults[userKey] = {
-                    username: row.username,
-                    ename: row.ename,
-                    vertical: row.vertical,
-                    depart: row.depart,
-                    reports: [] // Initialize reports array
-                };
-            }
-
-            // Add the current report date, details, and id to the user's report array
-            groupedResults[userKey].reports.push({
-                report_id: row.report_id,  // Include report_id here
-                report_date: row.report_date,
-                report_details: row.report_details
-            });
-        });
-
-        // Now format the grouped results to combine report_date and report_details
-        const finalResults = Object.values(groupedResults).map(user => {
-            return {
-                username: user.username,
-                ename: user.ename,
-                vertical: user.vertical,
-                depart: user.depart,
-                reports: user.reports // Directly use the reports array
-            };
-        });
-
-        // Send back the grouped and formatted result as a JSON response
-        res.status(200).json(finalResults);
     });
 });
 

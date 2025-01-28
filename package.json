@@ -11,6 +11,7 @@
     "concurrently": "^7.6.0"
   },
   "dependencies": {
+    "react-calendar": "^5.1.0",
     "react-chartjs-2": "^5.3.0",
     "react-redux": "^9.2.0"
   }

@@ -1,283 +1,200 @@
+import React, { useState, useEffect } from "react";
+import api from "../../../api/axios"; // Ensure your axios instance is set up correctly
+import RepoDetails from "../../../components/ReportDetailsModal"; // Import the RepoDetails modal
 
-import React, { useState, useEffect } from 'react';
-import { ResizableBox } from 'react-resizable';
-import 'react-resizable/css/styles.css';
-import api from '../../../api/axios';
+// Helper function to generate dates for the calendar grid
+const generateDatesInMonth = (month, year) => {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const dates = Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    return `${year}-${(month + 1).toString().padStart(2, "0")}-${day
+      .toString()
+      .padStart(2, "0")}`;
+  });
+  return dates;
+};
+
 const ArdHome = () => {
-  const today = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
-  const [selectedYear, setSelectedYear] = useState(today.getFullYear());
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fetch data whenever the selectedMonth or selectedYear changes
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth()); // 0-based
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [datesInMonth, setDatesInMonth] = useState([]);
+  const [reports, setReports] = useState({}); // Store reports for each user and date
+  const [selectedReport, setSelectedReport] = useState(null); // To store the selected report details
+
   useEffect(() => {
-    fetchDataForArdDepartment(selectedYear, selectedMonth);
-  }, [selectedMonth, selectedYear]);
-
-  const fetchDataForArdDepartment = async (year, month) => {
-    setLoading(true);
-    const formattedDate = `${year}-${month < 10 ? '0' + month : month}`;
-    
-    try {
-      const response = await api.fetch(`/reports/ard/${formattedDate}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch data');
-      }
-      const result = await response.json();
-      setData(result);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const { startDate, endDate } = getCurrentMonthRange(selectedYear, selectedMonth);
-  const headers = getDateHeaders(startDate, endDate);
-
-  // Handle the double-click event to start editing a report
-  const handleDoubleClick = (item, header) => {
-    // Find the report that matches the header date
-    const report = item.reports.find((report) =>
-      formatDateForComparison(report.report_date) === formatDateForComparison(header)
-    );
-  
-    if (report) {
-      setEditData({
-        itemIndex: data.indexOf(item),
-        header,
-        value: report.report_details,
-        id: report.report_id,  // Ensure the ID is being set here
-        report_date: report.report_date
-      });
-      setIsEditing(true); // Trigger editing mode
-    }
-  };
-
-  // Handle save event for updated report data
-  const handleSave = async () => {
-    const updatedData = [...data];
-    const { itemIndex, header, value, id, report_date } = editData;
-  
-    const reportIndex = updatedData[itemIndex].reports.findIndex((report) =>
-      formatDateForComparison(report.report_date) === formatDateForComparison(header)
-    );
-  
-    if (reportIndex !== -1) {
-      const report = updatedData[itemIndex].reports[reportIndex];
-      report.report_details = value; // Update report details
-  
-      const body = {
-        id,                    // ID of the report
-        report_date,           // Report date (will not be updated)
-        report_details: value, // Updated report details
-      };
-  
-      // Log the request body for debugging
-      console.log("Request body for PUT:", JSON.stringify(body));
-  
+    // Fetch users based on department (default to 'ard')
+    const fetchUsers = async () => {
       try {
-        const response = await fetch('http://localhost:3000/update-report', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
+        const response = await api.get("/reportusers", {
+          params: { depart: "ard" },
         });
-
-        const responseData = await response.json();
-        console.log("Response from API:", responseData);
-
-        if (!response.ok) {
-          throw new Error(responseData.message || 'Error updating report');
-        }
-  
-        setData(updatedData); // Update state with new data
-        alert('Report updated successfully');
-      } catch (error) {
-        console.error('Error saving report:', error);
-        alert('Failed to save report: ' + error.message);
+        setUsers(response.data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
+    };
+
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    // Generate dates for the current month
+    const dates = generateDatesInMonth(currentMonth, currentYear);
+    setDatesInMonth(dates);
+  }, [currentMonth, currentYear]);
+
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await api.get("/department/reports", {
+          params: { month: currentMonth + 1, year: currentYear },
+        });
+        const allReports = response.data.reduce((acc, report) => {
+          const reportDate = new Date(report.report_date).toISOString().split('T')[0]; // YYYY-MM-DD
+          if (!acc[report.user_id]) {
+            acc[report.user_id] = {};
+          }
+          acc[report.user_id][reportDate] = report.report_details;
+          return acc;
+        }, {});
+        setReports(allReports);
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
+    if (users.length > 0 && datesInMonth.length > 0) {
+      fetchReports();
     }
+  }, [users, datesInMonth, currentMonth, currentYear]);
+
+  const handleMonthChange = (event) => {
+    setCurrentMonth(parseInt(event.target.value, 10));
+  };
+
+  const handleYearChange = (event) => {
+    setCurrentYear(parseInt(event.target.value, 10));
+  };
+
+  const handleReportClick = (userId, date) => {
+    const userReports = reports[userId];
+    if (userReports && userReports[date]) {
+      const reportDetails = userReports[date];
+      const user = users.find((user) => user.id === userId);
+      const reportDate = date;
+      setSelectedReport({ reportDetails, username: user.username, ename: user.ename, reportDate });
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedReport(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Loading data...</p>
+      </div>
+    );
+  }
   
-    // Reset the editing state after save
-    setIsEditing(false);
-    setEditData(null);
-  };
-
-  // Handle cancel editing
-  const handleCancel = () => {
-    setIsEditing(false);
-    setEditData(null);
-  };
-
-  // Handle input changes while editing
-  const handleInputChange = (e) => {
-    setEditData({ ...editData, value: e.target.value });
-  };
-
-  // Handle blur event for saving when focus is lost
-  const handleBlur = () => {
-    if (editData) {
-      handleSave();
-    }
-  };
-
-  // Handle keyboard events (Enter to save, Escape to cancel)
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      handleSave();
-    }
-    if (e.key === 'Escape') {
-      handleCancel();
-    }
-  };
-
-  // Check if the selected month is the current month
-  const isCurrentMonth = selectedMonth === today.getMonth() + 1 && selectedYear === today.getFullYear();
+  if (error) return <p>Error: {error}</p>;
+  if (users.length === 0) return <p>No users found in ARD department.</p>;
 
   return (
-    <div className="flex flex-col lg:flex-row bg-gray-50 min-h-screen">
-      <div className="w-[80%] p-4 bg-gray-50 rounded-lg shadow-md flex-1 h-screen overflow-x-auto">
-        {/* Navigation Controls */}
-        <div className="flex justify-between mb-4">
-          <button
-            onClick={() => setSelectedMonth(selectedMonth - 1)}
-            className="px-4 py-2 bg-gray-300 rounded-md"
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4 text-center">ARD Daily Reports Tracker</h1>
+
+      <div className="flex space-x-4 mb-6">
+        <div>
+          <label htmlFor="month" className="block">
+            Select Month:
+          </label>
+          <select
+            id="month"
+            value={currentMonth}
+            onChange={handleMonthChange}
+            className="p-2 border border-gray-300"
           >
-            Previous Month
-          </button>
-          <div className="flex items-center">
-            <span className="mr-2 font-semibold text-lg">
-              {getFormattedMonthYear(selectedMonth, selectedYear)}
-            </span>
-          </div>
-          <button
-            onClick={() => setSelectedMonth(selectedMonth + 1)}
-            disabled={isCurrentMonth}
-            className={`px-4 py-2 rounded-md ${isCurrentMonth ? 'bg-gray-300 cursor-not-allowed' : 'bg-gray-300'}`}
-          >
-            Next Month
-          </button>
+            {Array.from({ length: 12 }).map((_, index) => (
+              <option key={index} value={index}>
+                {new Date(2021, index).toLocaleString("default", { month: "long" })}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Loading indicator */}
-        {loading && <div className="text-center py-4">Loading data...</div>}
-
-        {/* Table */}
-        <div className="overflow-x-auto max-h-screen overflow-y-auto">
-          <table className="min-w-full border border-gray-300 table-auto text-xs">
-            <thead className="bg-gray-200">
-              <tr>
-                <th className="sticky left-0 top-0 bg-gray-200 border border-gray-300 p-2 z-30">
-                  Emp Name
-                </th>
-                <th className="sticky left-[3rem] top-0 bg-gray-200 border border-gray-300 p-2 z-30">
-                  Section
-                </th>
-                {headers.map((header, idx) => (
-                  <th key={idx} className="sticky top-0 bg-gray-200 border border-gray-300 p-2 z-10">
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.length === 0 ? (
-                <tr>
-                  <td colSpan={headers.length + 2} className="text-center p-4">
-                    No data available for the selected month.
-                  </td>
-                </tr>
-              ) : (
-                data.map((item, index) => (
-                  <tr key={index}>
-                    <td className="sticky left-0 bg-white border border-gray-300 p-2">{item.ename}</td>
-                    <td className="sticky left-[3rem] bg-white border border-gray-300 p-2">{item.vertical}</td>
-                    {headers.map((header, idx) => (
-                      <td
-                        key={idx}
-                        className="border border-gray-300 p-2 cursor-pointer"
-                        onDoubleClick={() => handleDoubleClick(item, header)}
-                      >
-                        {isEditing && editData && editData.itemIndex === data.indexOf(item) && editData.header === header ? (
-                          <ResizableBox
-                            width={200}
-                            height={80}
-                            axis="both"
-                            minConstraints={[100, 60]}
-                            maxConstraints={[400, 200]}
-                            resizeHandles={['se']}
-                          >
-                            <textarea
-                              value={editData.value}
-                              onChange={handleInputChange}
-                              onBlur={handleBlur}
-                              onKeyDown={handleKeyDown}
-                              className="border p-2 rounded w-full h-full resize-none"
-                              style={{ resize: 'both', overflow: 'auto', minHeight: '60px', maxHeight: '200px' }}
-                              autoFocus
-                            />
-                          </ResizableBox>
-                        ) : (
-                          item.reports.find((report) =>
-                            formatDateForComparison(report.report_date) === formatDateForComparison(header)
-                          ) ? (
-                            <span className="whitespace-nowrap overflow-hidden text-ellipsis block">
-                              {item.reports.find((report) =>
-                                formatDateForComparison(report.report_date) === formatDateForComparison(header)
-                              ).report_details.slice(0, 20) + '...'}
-                            </span>
-                          ) : (
-                            ' '
-                          )
-                        )}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div>
+          <label htmlFor="year" className="block">
+            Select Year:
+          </label>
+          <input
+            type="number"
+            id="year"
+            value={currentYear}
+            onChange={handleYearChange}
+            className="p-2 border border-gray-300"
+          />
         </div>
       </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full table-auto border-collapse border border-gray-300">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 border border-gray-300 text-left sticky left-0 bg-white z-10">Username</th>
+              <th className="px-4 py-2 border border-gray-300 text-center whitespace-nowrap sticky left-0  bg-white z-30">Employee Name</th>
+              {datesInMonth.map((date) => (
+                <th
+                  key={date}
+                  className="px-4 py-2 border border-gray-300 text-center text-xs whitespace-nowrap sticky top-0 bg-white z-20"
+                >
+                  {date}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td className="px-4 py-2 border border-gray-300 whitespace-nowrap sticky left-0 bg-white z-10">{user.username}</td>
+                <td className="px-4 py-2 border border-gray-300 whitespace-nowrap sticky left-0 bg-white z-10">{user.ename}</td>
+                {datesInMonth.map((date) => (
+                  <td
+                    key={date}
+                    className="px-4 py-2 border border-gray-300 text-center text-xs text-white"
+                    onClick={() => handleReportClick(user.id, date)}
+                    style={{
+                      cursor: "pointer",
+                      backgroundColor:
+                        reports[user.id] && reports[user.id][date] ? "#22C55E" : "#f9f9f9",
+                    }}
+                  >
+                    {reports[user.id] && reports[user.id][date] ? "Reported" : " "}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+
+      <RepoDetails
+        reportDetails={selectedReport?.reportDetails}
+        username={selectedReport?.username}
+        ename={selectedReport?.ename}
+        reportDate={selectedReport?.reportDate}
+        onClose={closeModal}
+      />
     </div>
   );
-};
-
-// Helper functions
-const getCurrentMonthRange = (year, month) => {
-  const startDate = new Date(Date.UTC(year, month - 1, 1));
-  const endDate = new Date(Date.UTC(year, month, 0));
-  return { startDate, endDate };
-};
-
-const getFormattedMonthYear = (month, year) => {
-  const date = new Date(Date.UTC(year, month - 1, 1));
-  return date.toISOString().slice(0, 7); // Returns 'YYYY-MM'
-};
-
-
-const getDateHeaders = (startDate, endDate) => {
-  const headers = [];
-  const currentDate = new Date(startDate);
-  while (currentDate <= endDate) {
-    headers.push(currentDate.toISOString().slice(0, 10)); // Format as YYYY-MM-DD
-    currentDate.setUTCDate(currentDate.getUTCDate() + 1);  // Ensure using UTC
-  }
-  return headers;
-};
-
-const formatDateForComparison = (dateString) => {
-  // Convert dateString to Date object in UTC
-  const date = new Date(dateString);
-  
-  // Return the date in the 'YYYY-MM-DD' format (UTC, no timezone shift)
-  return date.toISOString().slice(0, 10);  // Slicing to get 'YYYY-MM-DD' format
 };
 
 export default ArdHome;
